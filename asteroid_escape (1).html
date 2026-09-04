@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Synthwave Flight: FPV Asteroid Cruise</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome for UI Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0221;
+            font-family: 'Rajdhani', system-ui, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Synthwave Panel */
+        .glass-panel-synth {
+            background: rgba(13, 2, 33, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.25), inset 0 0 15px rgba(0, 240, 255, 0.15);
+        }
+
+        .text-glow-pink {
+            text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f;
+        }
+
+        .text-glow-orange {
+            text-shadow: 0 0 10px #ff7700, 0 0 20px #ff7700;
+        }
+
+        .text-glow-cyan {
+            text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
+        }
+
+        /* Virtual Joystick Elements */
+        .joystick-zone {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: rgba(255, 0, 127, 0.08);
+            border: 2px solid rgba(255, 0, 127, 0.5);
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+            touch-action: none;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .joystick-knob {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 119, 0, 0.9) 0%, rgba(255, 0, 127, 0.6) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 18px rgba(255, 119, 0, 0.8);
+            position: absolute;
+            transform: translate(0, 0);
+            pointer-events: none;
+        }
+
+        /* CRT Scanline Overlay */
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 26, 0) 50%, rgba(255, 0, 127, 0.12) 50%);
+            background-size: 100% 4px;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* Screen Shake Vignette & Near Miss Banner */
+        .near-miss-vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: inset 0 0 80px rgba(0, 240, 255, 0.9), inset 0 0 140px rgba(255, 0, 127, 0.7);
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+        }
+
+        .near-miss-pop {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            color: #00f0ff;
+            text-shadow: 0 0 15px #00f0ff, 0 0 30px #ff007f;
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease-out;
+        }
+
+        /* FPV HUD Crosshair */
+        .fpv-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .fpv-ring {
+            width: 100%;
+            height: 100%;
+            border: 2px dashed rgba(0, 240, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+            animation: fpvSpin 15s linear infinite;
+        }
+
+        .fpv-pitch-ladder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 100px;
+            border-left: 2px solid rgba(255, 0, 127, 0.5);
+            border-right: 2px solid rgba(255, 0, 127, 0.5);
+            pointer-events: none;
+            z-index: 9;
+            transition: transform 0.05s ease-out;
+        }
+
+        @keyframes fpvSpin { 100% { transform: rotate(360deg); } }
+
+        .fpv-dot {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px; height: 6px;
+            background: #ff007f;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #ff007f, 0 0 20px #ff007f;
+        }
+
+        /* Directional Arrow Touch Button Styling */
+        .touch-btn {
+            background: rgba(13, 2, 33, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            user-select: none;
+            touch-action: none;
+        }
+
+        .touch-btn:active, .touch-btn.active {
+            background: rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
+            transform: scale(0.92);
+        }
+
+        .touch-btn-pink {
+            border-color: rgba(255, 0, 127, 0.6);
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+        }
+
+        .touch-btn-pink:active, .touch-btn-pink.active {
+            background: rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.8);
+        }
+
+        .touch-btn-orange {
+            border-color: rgba(255, 119, 0, 0.6);
+            box-shadow: 0 0 15px rgba(255, 119, 0, 0.3);
+        }
+
+        .touch-btn-orange:active, .touch-btn-orange.active {
+            background: rgba(255, 119, 0, 0.4);
+            box-shadow: 0 0 25px rgba(255, 119, 0, 0.8);
+        }
+    </style>
+</head>
+<body class="text-white select-none overflow-hidden">
+
+    <!-- 3D Render Canvas -->
+    <div id="canvas-container"></div>
+    <div class="scanlines"></div>
+
+    <!-- Near Miss Visual Effects -->
+    <div id="near-miss-vignette" class="near-miss-vignette"></div>
+    <div id="near-miss-banner" class="near-miss-pop text-2xl sm:text-3xl tracking-widest uppercase">NEAR MISS!</div>
+    
+    <!-- FPV Cockpit Reticle & Flight Horizon Indicator -->
+    <div class="fpv-crosshair">
+        <div class="fpv-ring"></div>
+        <div class="fpv-dot"></div>
+    </div>
+    <div id="pitch-ladder" class="fpv-pitch-ladder"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-6 hidden">
+        
+        <!-- Top Bar: Stats & Pause Settings Trigger -->
+        <div class="flex justify-between items-start w-full gap-2 sm:gap-4 pointer-events-auto">
+            <!-- Shield & Boost Energy Bar -->
+            <div class="glass-panel-synth p-2.5 sm:p-4 rounded-xl w-44 sm:w-64">
+                <div class="flex justify-between text-[10px] sm:text-xs font-bold tracking-wider text-pink-400 mb-1 font-orbitron">
+                    <span><i class="fa-solid fa-shield-halved mr-1 text-pink-500"></i> HULL</span>
+                    <span id="shield-txt" class="text-glow-pink">100%</span>
+                </div>
+                <div class="w-full bg-slate-900/80 rounded-full h-2.5 sm:h-3 overflow-hidden p-0.5 border border-pink-500/40">
+                    <div id="shield-bar" class="bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 h-full rounded-full transition-all duration-200 shadow-[0_0_10px_#ff007f]" style="width: 100%;"></div>
+                </div>
+
+                <!-- FPV Synth Boost Energy -->
+                <div class="flex justify-between text-[10px] sm:text-xs font-bold tracking-wider text-amber-400 mb-1 mt-2 sm:mt-3 font-orbitron">
+                    <span><i class="fa-solid fa-bolt mr-1 text-orange-400"></i> BOOST</span>
+                    <span id="boost-txt" class="text-glow-orange">100%</span>
+                </div>
+                <div class="w-full bg-slate-900/80 rounded-full h-2 sm:h-2.5 overflow-hidden p-0.5 border border-orange-500/40">
+                    <div id="boost-bar" class="bg-gradient-to-r from-orange-500 to-cyan-400 h-full rounded-full transition-all duration-100 shadow-[0_0_8px_#ff7700]" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- In-game Menu/Settings Pause Trigger -->
+            <button id="btn-hud-pause" class="glass-panel-synth px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border border-pink-500/50 text-pink-300 hover:text-white flex items-center gap-2 font-orbitron text-xs sm:text-sm active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,0,127,0.3)]">
+                <i class="fa-solid fa-gear text-cyan-400 text-base"></i> <span class="hidden sm:inline">PAUSE / MENU</span>
+            </button>
+
+            <!-- FPV Speedometer & Telemetry -->
+            <div class="glass-panel-synth p-2.5 sm:p-4 rounded-xl text-right min-w-[130px] sm:min-w-[160px]">
+                <div class="text-[9px] sm:text-xs font-orbitron tracking-widest text-pink-300/80">FPV DISTANCE</div>
+                <div id="distance-val" class="text-xl sm:text-4xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-orange-300 to-cyan-400 text-glow-pink">0 m</div>
+                <div id="speed-val" class="text-[10px] sm:text-xs font-mono text-cyan-300 mt-0.5">VELOCITY: 52 KM/H</div>
+                <div class="text-[9px] sm:text-[10px] text-pink-300/70 mt-0.5 font-orbitron">BEST: <span id="highscore-val" class="text-amber-300 font-bold">0 m</span></div>
+            </div>
+        </div>
+
+        <!-- Mobile Controls Container -->
+        <div id="mobile-controls" class="w-full pointer-events-none z-20">
+            <!-- JOYSTICK MODE CONTROLS -->
+            <div id="joystick-layout" class="flex justify-between items-end w-full pointer-events-auto">
+                <div id="joystick-container" class="joystick-zone">
+                    <div id="joystick-knob" class="joystick-knob"></div>
+                </div>
+
+                <div class="flex flex-col space-y-3 mb-2">
+                    <button id="btn-fire" class="w-16 h-16 rounded-full touch-btn touch-btn-pink text-pink-400 flex items-center justify-center text-2xl active:scale-95 transition-transform">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </button>
+                    <button id="btn-boost" class="w-16 h-16 rounded-full touch-btn touch-btn-orange text-orange-400 flex items-center justify-center text-2xl active:scale-95 transition-transform">
+                        <i class="fa-solid fa-gauge-high"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SPLIT ARROW BUTTONS MODE CONTROLS -->
+            <div id="arrows-layout" class="flex justify-between items-end w-full pointer-events-auto hidden mb-1 px-1">
+                <!-- Left Bottom: Left & Right Steer/Roll Arrows -->
+                <div class="flex space-x-2">
+                    <button id="btn-arrow-left" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
+                        <i class="fa-solid fa-caret-left"></i>
+                    </button>
+                    <button id="btn-arrow-right" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
+                        <i class="fa-solid fa-caret-right"></i>
+                    </button>
+                </div>
+
+                <!-- Right Bottom: Up & Down Pitch Arrows + Action Buttons -->
+                <div class="flex items-center space-x-3">
+                    <!-- Action Fire & Boost -->
+                    <div class="flex flex-col space-y-2">
+                        <button id="btn-fire-alt" class="w-12 h-12 rounded-full touch-btn touch-btn-pink text-pink-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </button>
+                        <button id="btn-boost-alt" class="w-12 h-12 rounded-full touch-btn touch-btn-orange text-orange-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </button>
+                    </div>
+
+                    <!-- Up / Down Pitch Arrows -->
+                    <div class="flex flex-col space-y-2">
+                        <button id="btn-arrow-up" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
+                            <i class="fa-solid fa-caret-up"></i>
+                        </button>
+                        <button id="btn-arrow-down" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
+                            <i class="fa-solid fa-caret-down"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Menu & Settings Overlay Screens -->
+    <div id="screen-overlay" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-purple-950/85 backdrop-blur-md">
+        
+        <!-- MAIN MENU PANEL -->
+        <div id="main-menu-panel" class="glass-panel-synth p-6 sm:p-8 rounded-2xl max-w-md w-full text-center border border-pink-500/50 shadow-2xl">
+            <div class="inline-flex p-4 rounded-2xl bg-gradient-to-tr from-pink-500/20 to-orange-500/20 text-pink-400 mb-2 border border-pink-500/40 shadow-[0_0_25px_rgba(255,0,127,0.3)]">
+                <i class="fa-solid fa-vr-cardboard text-4xl sm:text-5xl text-amber-400"></i>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-orange-400 to-cyan-300 text-glow-pink mb-1">FPV SYNTH PILOT</h1>
+            <p class="text-xs sm:text-sm text-pink-200/90 mb-6 font-semibold">Retro First-Person Space Flight Simulator</p>
+            
+            <div class="space-y-3 mb-6">
+                <button id="btn-start-game" class="w-full py-3.5 bg-gradient-to-r from-pink-600 via-orange-500 to-pink-500 hover:from-pink-500 hover:to-orange-400 text-white font-black font-orbitron rounded-xl shadow-[0_0_20px_rgba(255,0,127,0.5)] active:scale-[0.98] transition-all text-base sm:text-lg tracking-widest flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> LAUNCH FLIGHT
+                </button>
+
+                <button id="btn-open-settings" class="w-full py-3 bg-slate-900/80 hover:bg-slate-800 text-cyan-300 hover:text-white font-bold font-orbitron rounded-xl border border-cyan-500/40 active:scale-[0.98] transition-all text-sm tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> SETTINGS & CONTROLS
+                </button>
+
+                <button id="btn-open-howto" class="w-full py-2.5 bg-slate-950/60 hover:bg-slate-900 text-pink-300 font-bold font-orbitron rounded-xl border border-pink-500/30 active:scale-[0.98] transition-all text-xs tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-info"></i> HOW TO PLAY
+                </button>
+            </div>
+
+            <div class="text-[11px] text-pink-300/70 font-orbitron">
+                BEST RECORD: <span id="menu-highscore" class="text-amber-300 font-bold">0 m</span>
+            </div>
+        </div>
+
+        <!-- SETTINGS PANEL -->
+        <div id="settings-panel" class="glass-panel-synth p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50 shadow-2xl hidden">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-pink-500/30">
+                <h2 class="text-xl sm:text-2xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 text-glow-cyan">
+                    <i class="fa-solid fa-gear mr-2"></i>SETTINGS
+                </h2>
+                <button id="btn-close-settings" class="text-pink-400 hover:text-white text-xl p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Controls Mode Selection -->
+            <div class="space-y-4 text-xs font-orbitron">
+                <div>
+                    <label class="block text-pink-300 mb-2 font-bold tracking-wider">MOBILE CONTROLS SCHEME</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="opt-ctrl-joystick" class="p-3 rounded-xl border border-pink-500/80 bg-pink-600/30 text-white font-bold flex flex-col items-center gap-1 active:scale-95 transition-all">
+                            <i class="fa-solid fa-gamepad text-2xl text-amber-400"></i>
+                            <span>JOYSTICK</span>
+                        </button>
+                        <button id="opt-ctrl-arrows" class="p-3 rounded-xl border border-pink-500/30 bg-slate-900/60 text-pink-300 font-bold flex flex-col items-center gap-1 active:scale-95 transition-all">
+                            <i class="fa-solid fa-up-down-left-right text-2xl text-cyan-400"></i>
+                            <span>SPLIT ARROWS</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pitch Inversion -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-pink-500/30">
+                    <div>
+                        <div class="text-pink-200 font-bold">INVERT PITCH CONTROL</div>
+                        <div class="text-[10px] text-pink-300/60 font-sans">Flight stick inverted Y-axis</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-invert-settings" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-pink-950 border border-pink-500/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                    </label>
+                </div>
+
+                <!-- Sound FX Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-pink-500/30">
+                    <div class="text-pink-200 font-bold">SYNTH SOUND FX</div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-audio-settings" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-pink-950 border border-pink-500/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-2">
+                <button id="btn-settings-back" class="w-full py-3 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold font-orbitron rounded-xl active:scale-[0.98] transition-all tracking-wider">
+                    SAVE & BACK
+                </button>
+            </div>
+        </div>
+
+        <!-- HOW TO PLAY PANEL -->
+        <div id="howto-panel" class="glass-panel-synth p-6 sm:p-8 rounded-2xl max-w-md w-full border border-pink-500/50 shadow-2xl hidden">
+            <h2 class="text-xl font-black font-orbitron text-pink-400 mb-3 border-b border-pink-500/30 pb-2">
+                <i class="fa-solid fa-gamepad mr-2"></i>CONTROLS GUIDE
+            </h2>
+            <div class="text-xs text-pink-200 space-y-3 mb-6 font-sans">
+                <div class="p-2.5 rounded-lg bg-slate-950/80 border border-pink-500/30">
+                    <div class="font-bold text-amber-300 font-orbitron mb-1">MOBILE JOYSTICK MODE:</div>
+                    <p>• Left side: Drag joystick for 360° flight pitch & roll steer.</p>
+                    <p>• Right side: Tap buttons to Fire Lasers and Engage Boost.</p>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-950/80 border border-cyan-500/30">
+                    <div class="font-bold text-cyan-300 font-orbitron mb-1">MOBILE ARROWS MODE:</div>
+                    <p>• Left Bottom: Left & Right arrows for bank steering.</p>
+                    <p>• Right Bottom: Up & Down arrows for pitch control.</p>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-950/80 border border-pink-500/30">
+                    <div class="font-bold text-pink-300 font-orbitron mb-1">KEYBOARD CONTROLS:</div>
+                    <p>• W / S or Up / Down = Pitch nose</p>
+                    <p>• A / D or Left / Right = Bank steer</p>
+                    <p>• SPACE = Boost | J / Left-Click = Fire</p>
+                </div>
+            </div>
+            <button id="btn-close-howto" class="w-full py-2.5 bg-slate-900 border border-pink-500/40 text-pink-300 font-bold font-orbitron rounded-xl">
+                GOT IT
+            </button>
+        </div>
+
+        <!-- GAME OVER PANEL -->
+        <div id="gameover-panel" class="glass-panel-synth p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border border-rose-500/50 shadow-2xl hidden">
+            <div class="inline-flex p-4 rounded-2xl bg-rose-500/20 text-rose-400 mb-3 border border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                <i class="fa-solid fa-burst text-4xl"></i>
+            </div>
+            <h2 class="text-3xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-400 text-glow-pink mb-1">CRASH DETECTED</h2>
+            <p class="text-xs text-pink-200/80 mb-6">Your FPV vessel collided with floating space rock.</p>
+            
+            <div class="bg-slate-950/80 p-4 rounded-xl mb-6 border border-pink-500/30 text-center">
+                <div class="text-xs font-orbitron text-pink-300 mb-1">TOTAL FPV FLIGHT DISTANCE</div>
+                <div id="final-distance" class="text-4xl font-black font-orbitron text-cyan-300 text-glow-cyan mb-2">0 m</div>
+                <div id="new-highscore-tag" class="inline-block px-3 py-1 bg-orange-500/20 text-amber-300 text-xs font-bold font-orbitron rounded-full border border-orange-500/50 hidden">
+                    <i class="fa-solid fa-trophy mr-1"></i> NEW BEST DISTANCE!
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button id="btn-restart" class="w-full py-3.5 bg-gradient-to-r from-rose-600 via-orange-500 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black font-orbitron rounded-xl shadow-[0_0_25px_rgba(255,0,127,0.5)] active:scale-[0.98] transition-all text-base tracking-widest">
+                    FLY AGAIN
+                </button>
+                <button id="btn-return-menu" class="w-full py-2.5 bg-slate-900 border border-pink-500/30 text-pink-300 font-bold font-orbitron rounded-xl text-xs tracking-wider">
+                    MAIN MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SynthEngine {
+            constructor() {
+                this.ctx = null;
+                this.initialized = false;
+                this.bassGain = null;
+                this.bassOsc = null;
+                this.filter = null;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.initialized = true;
+                    this.setupSynthBass();
+                } catch (e) {
+                    console.log('Web Audio disabled');
+                }
+            }
+
+            setupSynthBass() {
+                if (!this.ctx) return;
+                this.bassOsc = this.ctx.createOscillator();
+                this.filter = this.ctx.createBiquadFilter();
+                this.bassGain = this.ctx.createGain();
+
+                this.bassOsc.type = 'sawtooth';
+                this.bassOsc.frequency.setValueAtTime(42, this.ctx.currentTime); 
+
+                this.filter.type = 'lowpass';
+                this.filter.frequency.setValueAtTime(140, this.ctx.currentTime);
+
+                this.bassGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+
+                this.bassOsc.connect(this.filter);
+                this.filter.connect(this.bassGain);
+                this.bassGain.connect(this.ctx.destination);
+                this.bassOsc.start();
+            }
+
+            setEngineThrust(isBoosting) {
+                if (!this.ctx || !this.bassGain) return;
+                const targetFreq = isBoosting ? 92 : 42;
+                const filterFreq = isBoosting ? 400 : 140;
+                const targetGain = isBoosting ? 0.18 : 0.06;
+
+                this.bassOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.15);
+                this.filter.frequency.setTargetAtTime(filterFreq, this.ctx.currentTime, 0.2);
+                this.bassGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.15);
+            }
+
+            playLaser() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(950, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.18);
+
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.18);
+            }
+
+            playExplosion() {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(450, this.ctx.currentTime);
+                filter.frequency.linearRampToValueAtTime(35, this.ctx.currentTime + 0.5);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.38, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            }
+
+            playHit() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(240, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(45, this.ctx.currentTime + 0.25);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playNearMiss() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.2);
+
+                gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+        }
+
+        const sound = new SynthEngine();
+
+        const container = document.getElementById('canvas-container');
+        
+        let scene, camera, renderer;
+        let asteroids = [];
+        let lasers = [];
+        let particles = [];
+        let speedDust = [];
+        let shockwaves = [];
+        let starField;
+        
+        // Realistic Infinite Grid Objects
+        let floorGridLines, ceilingGridLines;
+        let sunGroup, sunMesh;
+
+        // Camera Shake & Near Miss State
+        let cameraShakeIntensity = 0;
+        let nearMissCombo = 0;
+
+        // GAME PARAMETERS
+        let isPlaying = false;
+        let distance = 0;
+        let highscore = localStorage.getItem('synth_escape_highscore') || 0;
+        let shield = 100;
+        let boostEnergy = 100;
+        let isBoosting = false;
+        
+        let baseSpeed = 0.95; 
+        let currentSpeed = baseSpeed;
+        let invertPitch = true;
+        let soundEnabled = true;
+        let controlMode = localStorage.getItem('synth_ctrl_mode') || 'joystick'; // 'joystick' or 'arrows'
+
+        // Controls input state
+        const inputState = { pitch: 0, roll: 0, yaw: 0, fire: false, boost: false };
+        const arrowState = { up: false, down: false, left: false, right: false };
+        const keys = {};
+
+        // FPV Flight Dynamics Physics Variables
+        const fpvPos = new THREE.Vector3(0, 0, 0);       // World position of FPV pilot
+        const fpvVelocity = new THREE.Vector3(0, 0, 0);  // Smooth flight velocity momentum
+        const fpvRot = new THREE.Euler(0, 0, 0, 'YXZ');  // Pitch, Yaw, Roll angles
+        
+        const maxPitch = Math.PI / 4.8; 
+        const maxRoll = Math.PI / 2.4; 
+        const boundX = 35; 
+        const boundY = 20;
+
+        // Grid spacing tile dimensions for realistic spatial scrolling
+        const GRID_TILE_SIZE = 20;
+        const GRID_EXTENT = 600;
+
+        document.getElementById('highscore-val').textContent = `${Math.floor(highscore)} m`;
+        document.getElementById('menu-highscore').textContent = `${Math.floor(highscore)} m`;
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0d0221, 0.0035);
+            
+            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.35;
+            container.appendChild(renderer.domElement);
+
+            // Ambient & Sunset Lighting
+            const ambientLight = new THREE.AmbientLight(0xff007f, 0.85);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xff7700, 1.5);
+            dirLight.position.set(0, 30, -100);
+            scene.add(dirLight);
+
+            createRealisticInfiniteGrids();
+            createRetroSunset();
+            createStarfield();
+            createSpeedDustParticles();
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function createRealisticInfiniteGrids() {
+            // Floor Grid Object
+            const floorGeo = createGridGeometry(GRID_EXTENT, GRID_TILE_SIZE);
+            const floorMat = new THREE.LineBasicMaterial({ 
+                color: 0xff007f, 
+                transparent: true, 
+                opacity: 0.8,
+                linewidth: 1.5
+            });
+            floorGridLines = new THREE.LineSegments(floorGeo, floorMat);
+            floorGridLines.position.set(0, -30, 0);
+            scene.add(floorGridLines);
+
+            // Ceiling Grid Object
+            const ceilingGeo = createGridGeometry(GRID_EXTENT, GRID_TILE_SIZE * 1.5);
+            const ceilingMat = new THREE.LineBasicMaterial({ 
+                color: 0x00f0ff, 
+                transparent: true, 
+                opacity: 0.45 
+            });
+            ceilingGridLines = new THREE.LineSegments(ceilingGeo, ceilingMat);
+            ceilingGridLines.position.set(0, 38, 0);
+            scene.add(ceilingGridLines);
+        }
+
+        // Custom Helper to create precise line segment grid geometry
+        function createGridGeometry(size, step) {
+            const vertices = [];
+            const halfSize = size / 2;
+
+            for (let i = -halfSize; i <= halfSize; i += step) {
+                // Lines along X axis
+                vertices.push(-halfSize, 0, i, halfSize, 0, i);
+                // Lines along Z axis
+                vertices.push(i, 0, -halfSize, i, 0, halfSize);
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            return geometry;
+        }
+
+        function createRetroSunset() {
+            sunGroup = new THREE.Group();
+            sunGroup.position.set(0, 15, -450);
+
+            const sunGeo = new THREE.CircleGeometry(68, 64);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            const grad = ctx.createLinearGradient(0, 0, 0, 256);
+            grad.addColorStop(0.0, '#ffea00');
+            grad.addColorStop(0.4, '#ff7700');
+            grad.addColorStop(0.8, '#ff007f');
+            grad.addColorStop(1.0, '#b000ff');
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.fillStyle = '#0d0221'; 
+            let lineY = 130;
+            let lineHeight = 4;
+            while (lineY < 256) {
+                ctx.fillRect(0, lineY, 256, lineHeight);
+                lineY += lineHeight + 5;
+                lineHeight += 2; 
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const sunMat = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+            sunMesh = new THREE.Mesh(sunGeo, sunMat);
+            sunGroup.add(sunMesh);
+
+            const glowGeo = new THREE.CircleGeometry(88, 64);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0xff007f,
+                transparent: true,
+                opacity: 0.28,
+                side: THREE.DoubleSide
+            });
+            const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+            glowMesh.position.z = -1;
+            sunGroup.add(glowMesh);
+
+            scene.add(sunGroup);
+        }
+
+        function createStarfield() {
+            const count = 3200;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            const palette = [
+                new THREE.Color(0xff007f),
+                new THREE.Color(0xffaa00),
+                new THREE.Color(0x00f0ff),
+                new THREE.Color(0xffffff)
+            ];
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 500;
+                positions[i * 3 + 1] = Math.random() * 220 - 20;
+                positions[i * 3 + 2] = -Math.random() * 650;
+
+                const col = palette[Math.floor(Math.random() * palette.length)];
+                colors[i * 3] = col.r;
+                colors[i * 3 + 1] = col.g;
+                colors[i * 3 + 2] = col.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 1.6,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.95
+            });
+
+            starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+        }
+
+        // FPV Lens Speed Dust Streamers
+        function createSpeedDustParticles() {
+            const count = 250;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 40;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+                positions[i * 3 + 2] = -Math.random() * 120;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({
+                color: 0x00f0ff,
+                size: 0.8,
+                transparent: true,
+                opacity: 0.75,
+                blending: THREE.AdditiveBlending
+            });
+
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+            speedDust = points;
+        }
+
+        function spawnAsteroid() {
+            const radius = 2.5 + Math.random() * 4.5;
+            const geo = new THREE.DodecahedronGeometry(radius, 1);
+            
+            const posAttr = geo.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const vx = posAttr.getX(i) + (Math.random() - 0.5) * 0.8;
+                const vy = posAttr.getY(i) + (Math.random() - 0.5) * 0.8;
+                const vz = posAttr.getZ(i) + (Math.random() - 0.5) * 0.8;
+                posAttr.setXYZ(i, vx, vy, vz);
+            }
+            geo.computeVertexNormals();
+
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x1a0330,
+                emissive: 0xff007f,
+                emissiveIntensity: 0.3,
+                roughness: 0.65,
+                wireframe: true
+            });
+
+            const ast = new THREE.Mesh(geo, mat);
+            ast.position.set(
+                (Math.random() - 0.5) * boundX * 2.2,
+                (Math.random() - 0.5) * boundY * 1.8,
+                fpvPos.z - 420
+            );
+
+            ast.userData = {
+                radius: radius,
+                rotSpeedX: (Math.random() - 0.5) * 0.025,
+                rotSpeedY: (Math.random() - 0.5) * 0.025,
+                health: Math.ceil(radius * 0.8),
+                nearMissed: false
+            };
+
+            scene.add(ast);
+            asteroids.push(ast);
+        }
+
+        function triggerShockwave(pos, color = 0xff007f) {
+            const ringGeo = new THREE.RingGeometry(0.5, 1.2, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.95,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.copy(pos);
+            ring.rotation.x = Math.PI / 2;
+
+            ring.userData = { life: 1.0, expandSpeed: 26 };
+            scene.add(ring);
+            shockwaves.push(ring);
+        }
+
+        function triggerNearMiss(ast) {
+            ast.userData.nearMissed = true;
+            sound.playNearMiss();
+
+            cameraShakeIntensity = 0.65;
+            nearMissCombo++;
+
+            const midPoint = fpvPos.clone().add(ast.position).multiplyScalar(0.5);
+            triggerShockwave(midPoint, 0x00f0ff);
+            triggerExplosion(midPoint, 0x00f0ff, 16);
+
+            const banner = document.getElementById('near-miss-banner');
+            const vignette = document.getElementById('near-miss-vignette');
+
+            banner.textContent = nearMissCombo > 1 ? `NEAR MISS x${nearMissCombo}!` : 'NEAR MISS!';
+            banner.style.opacity = '1';
+            banner.style.transform = 'translate(-50%, -50%) scale(1.1)';
+
+            vignette.style.opacity = '1';
+            distance += 150;
+
+            setTimeout(() => {
+                banner.style.opacity = '0';
+                banner.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                vignette.style.opacity = '0';
+            }, 600);
+        }
+
+        // FPV Laser Cannons: Fire from bottom left & right corners toward target point
+        function fireLaser() {
+            if (!isPlaying) return;
+
+            sound.playLaser();
+
+            const geo = new THREE.CylinderGeometry(0.1, 0.1, 3.5, 6);
+            geo.rotateX(Math.PI / 2);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+
+            // Calculate FPV Cannons aligned with camera orientation
+            const targetDist = 120;
+            const targetPoint = new THREE.Vector3(0, 0, -targetDist).applyEuler(fpvRot).add(fpvPos);
+
+            const leftCannonOffset = new THREE.Vector3(-1.8, -0.8, -1).applyEuler(fpvRot).add(fpvPos);
+            const rightCannonOffset = new THREE.Vector3(1.8, -0.8, -1).applyEuler(fpvRot).add(fpvPos);
+
+            const laserL = new THREE.Mesh(geo, mat);
+            laserL.position.copy(leftCannonOffset);
+            laserL.lookAt(targetPoint);
+
+            const laserR = new THREE.Mesh(geo, mat.clone());
+            laserR.position.copy(rightCannonOffset);
+            laserR.lookAt(targetPoint);
+
+            const dirL = targetPoint.clone().sub(leftCannonOffset).normalize();
+            const dirR = targetPoint.clone().sub(rightCannonOffset).normalize();
+
+            laserL.userData = { dir: dirL, speed: 4.8 };
+            laserR.userData = { dir: dirR, speed: 4.8 };
+
+            scene.add(laserL);
+            scene.add(laserR);
+
+            lasers.push(laserL, laserR);
+        }
+
+        function triggerExplosion(pos, color = 0xff007f, count = 28) {
+            for (let i = 0; i < count; i++) {
+                const geo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.copy(pos);
+                
+                const vel = new THREE.Vector3(
+                    (Math.random() - 0.5) * 11,
+                    (Math.random() - 0.5) * 11,
+                    (Math.random() - 0.5) * 11
+                );
+
+                p.userData = { vel: vel, life: 1.0 };
+                scene.add(p);
+                particles.push(p);
+            }
+        }
+
+        function setupControls() {
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyJ' || e.code === 'KeyF') {
+                    fireLaser();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            window.addEventListener('mousedown', (e) => {
+                if (isPlaying && e.button === 0 && e.target.tagName !== 'BUTTON' && !e.target.closest('#hud')) {
+                    fireLaser();
+                }
+            });
+
+            setupJoystick();
+            setupSplitArrowControls();
+            setupMenuUIListeners();
+            updateControlModeUI();
+        }
+
+        function setupSplitArrowControls() {
+            const bindBtn = (id, keyName) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+
+                const start = (e) => {
+                    e.preventDefault();
+                    if (keyName === 'fire') {
+                        fireLaser();
+                    } else if (keyName === 'boost') {
+                        inputState.boost = true;
+                    } else {
+                        arrowState[keyName] = true;
+                    }
+                    btn.classList.add('active');
+                };
+
+                const end = (e) => {
+                    e.preventDefault();
+                    if (keyName === 'boost') {
+                        inputState.boost = false;
+                    } else if (keyName !== 'fire') {
+                        arrowState[keyName] = false;
+                    }
+                    btn.classList.remove('active');
+                };
+
+                btn.addEventListener('touchstart', start, { passive: false });
+                btn.addEventListener('touchend', end, { passive: false });
+                btn.addEventListener('touchcancel', end, { passive: false });
+                btn.addEventListener('mousedown', start);
+                btn.addEventListener('mouseup', end);
+                btn.addEventListener('mouseleave', end);
+            };
+
+            // Bind Left Bottom Steering Arrows
+            bindBtn('btn-arrow-left', 'left');
+            bindBtn('btn-arrow-right', 'right');
+
+            // Bind Right Bottom Pitch Arrows
+            bindBtn('btn-arrow-up', 'up');
+            bindBtn('btn-arrow-down', 'down');
+
+            // Bind Action buttons
+            bindBtn('btn-fire', 'fire');
+            bindBtn('btn-boost', 'boost');
+            bindBtn('btn-fire-alt', 'fire');
+            bindBtn('btn-boost-alt', 'boost');
+        }
+
+        function setupJoystick() {
+            const joystickContainer = document.getElementById('joystick-container');
+            const knob = document.getElementById('joystick-knob');
+            let touchId = null;
+            let center = { x: 0, y: 0 };
+            const maxRadius = 45;
+
+            joystickContainer.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (touchId !== null) return;
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                const rect = joystickContainer.getBoundingClientRect();
+                center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                updateJoystick(touch);
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (touchId === null) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        updateJoystick(e.changedTouches[i]);
+                        break;
+                    }
+                }
+            });
+
+            const resetJoystick = (e) => {
+                if (touchId === null) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        touchId = null;
+                        knob.style.transform = `translate(0px, 0px)`;
+                        inputState.pitch = 0;
+                        inputState.roll = 0;
+                        break;
+                    }
+                }
+            };
+
+            window.addEventListener('touchend', resetJoystick);
+            window.addEventListener('touchcancel', resetJoystick);
+
+            function updateJoystick(touch) {
+                let dx = touch.clientX - center.x;
+                let dy = touch.clientY - center.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist > maxRadius) {
+                    dx = (dx / dist) * maxRadius;
+                    dy = (dy / dist) * maxRadius;
+                }
+
+                knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                inputState.roll = dx / maxRadius;
+                inputState.pitch = dy / maxRadius;
+            }
+        }
+
+        function setupMenuUIListeners() {
+            const mainPanel = document.getElementById('main-menu-panel');
+            const settingsPanel = document.getElementById('settings-panel');
+            const howtoPanel = document.getElementById('howto-panel');
+            const gameoverPanel = document.getElementById('gameover-panel');
+            const overlay = document.getElementById('screen-overlay');
+
+            document.getElementById('btn-start-game').addEventListener('click', startGame);
+            document.getElementById('btn-restart').addEventListener('click', startGame);
+
+            document.getElementById('btn-open-settings').addEventListener('click', () => {
+                mainPanel.classList.add('hidden');
+                settingsPanel.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-settings').addEventListener('click', () => {
+                settingsPanel.classList.add('hidden');
+                mainPanel.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-settings-back').addEventListener('click', () => {
+                settingsPanel.classList.add('hidden');
+                if (isPlaying) {
+                    overlay.classList.add('hidden');
+                } else {
+                    mainPanel.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('btn-open-howto').addEventListener('click', () => {
+                mainPanel.classList.add('hidden');
+                howtoPanel.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-howto').addEventListener('click', () => {
+                howtoPanel.classList.add('hidden');
+                mainPanel.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-hud-pause').addEventListener('click', () => {
+                if (isPlaying) {
+                    isPlaying = false;
+                    gameoverPanel.classList.add('hidden');
+                    mainPanel.classList.add('hidden');
+                    howtoPanel.classList.add('hidden');
+                    settingsPanel.classList.remove('hidden');
+                    overlay.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('btn-return-menu').addEventListener('click', () => {
+                gameoverPanel.classList.add('hidden');
+                settingsPanel.classList.add('hidden');
+                howtoPanel.classList.add('hidden');
+                mainPanel.classList.remove('hidden');
+                document.getElementById('hud').classList.add('hidden');
+            });
+
+            // Settings Controls Selector Buttons
+            const btnJoy = document.getElementById('opt-ctrl-joystick');
+            const btnArr = document.getElementById('opt-ctrl-arrows');
+
+            btnJoy.addEventListener('click', () => {
+                controlMode = 'joystick';
+                localStorage.setItem('synth_ctrl_mode', 'joystick');
+                updateControlModeUI();
+            });
+
+            btnArr.addEventListener('click', () => {
+                controlMode = 'arrows';
+                localStorage.setItem('synth_ctrl_mode', 'arrows');
+                updateControlModeUI();
+            });
+
+            document.getElementById('toggle-invert-settings').addEventListener('change', (e) => {
+                invertPitch = e.target.checked;
+            });
+        }
+
+        function updateControlModeUI() {
+            const joyLayout = document.getElementById('joystick-layout');
+            const arrLayout = document.getElementById('arrows-layout');
+            const btnJoy = document.getElementById('opt-ctrl-joystick');
+            const btnArr = document.getElementById('opt-ctrl-arrows');
+
+            if (controlMode === 'joystick') {
+                joyLayout.classList.remove('hidden');
+                arrLayout.classList.add('hidden');
+                btnJoy.className = 'p-3 rounded-xl border border-pink-500/80 bg-pink-600/40 text-white font-bold flex flex-col items-center gap-1';
+                btnArr.className = 'p-3 rounded-xl border border-pink-500/30 bg-slate-900/60 text-pink-300 font-bold flex flex-col items-center gap-1 opacity-70';
+            } else {
+                joyLayout.classList.add('hidden');
+                arrLayout.classList.remove('hidden');
+                btnArr.className = 'p-3 rounded-xl border border-cyan-500/80 bg-cyan-600/40 text-white font-bold flex flex-col items-center gap-1';
+                btnJoy.className = 'p-3 rounded-xl border border-pink-500/30 bg-slate-900/60 text-pink-300 font-bold flex flex-col items-center gap-1 opacity-70';
+            }
+        }
+
+        function updateFPVFlightControls() {
+            let rawPitch = inputState.pitch;
+            let rawRoll = inputState.roll;
+
+            // Arrow button mobile inputs
+            if (controlMode === 'arrows') {
+                if (arrowState.up) rawPitch = -1.0;
+                if (arrowState.down) rawPitch = 1.0;
+                if (arrowState.left) rawRoll = -1.0;
+                if (arrowState.right) rawRoll = 1.0;
+            }
+
+            // Keyboard overrides
+            if (keys['KeyW'] || keys['ArrowUp']) rawPitch = -1.0;   
+            if (keys['KeyS'] || keys['ArrowDown']) rawPitch = 1.0;   
+            if (keys['KeyA'] || keys['ArrowLeft']) rawRoll = -1.0;   
+            if (keys['KeyD'] || keys['ArrowRight']) rawRoll = 1.0;   
+
+            isBoosting = keys['Space'] || keys['ShiftLeft'] || inputState.boost;
+
+            let pitchDirection = invertPitch ? -rawPitch : rawPitch;
+
+            const targetPitch = pitchDirection * maxPitch;
+            const targetRoll = -rawRoll * maxRoll;
+            const targetYaw = -rawRoll * 0.22;
+
+            // Smooth spring damping for realistic FPV pilot camera pitch and roll tilt
+            fpvRot.x += (targetPitch - fpvRot.x) * 0.085;
+            fpvRot.z += (targetRoll - fpvRot.z) * 0.095;
+            fpvRot.y += (targetYaw - fpvRot.y) * 0.07;
+
+            const speedFactor = isBoosting && boostEnergy > 5 ? 1.85 : 1.0;
+            currentSpeed = baseSpeed * speedFactor;
+
+            // Lateral and vertical flight velocity vector
+            const targetVelX = rawRoll * 0.48 * speedFactor;
+            const targetVelY = (invertPitch ? -rawPitch : rawPitch) * 0.42 * speedFactor;
+
+            fpvVelocity.x += (targetVelX - fpvVelocity.x) * 0.1;
+            fpvVelocity.y += (targetVelY - fpvVelocity.y) * 0.1;
+
+            fpvPos.x += fpvVelocity.x;
+            fpvPos.y += fpvVelocity.y;
+
+            fpvPos.x = Math.max(-boundX, Math.min(boundX, fpvPos.x));
+            fpvPos.y = Math.max(-boundY, Math.min(boundY, fpvPos.y));
+
+            // Dynamic FPV FOV Expansion during speed boost
+            const targetFOV = isBoosting && boostEnergy > 5 ? 74 : 62;
+            camera.fov += (targetFOV - camera.fov) * 0.08;
+            camera.updateProjectionMatrix();
+
+            // Direct FPV Cockpit Camera Placement
+            camera.position.copy(fpvPos);
+            camera.rotation.copy(fpvRot);
+
+            // Update Pitch Ladder visual roll transform
+            const pitchLadder = document.getElementById('pitch-ladder');
+            if (pitchLadder) {
+                pitchLadder.style.transform = `translate(-50%, -50%) rotate(${-fpvRot.z * 57.3}deg) translateY(${fpvRot.x * 40}px)`;
+            }
+
+            if (isBoosting && boostEnergy > 0) {
+                boostEnergy = Math.max(0, boostEnergy - 0.5);
+            } else if (!isBoosting && boostEnergy < 100) {
+                boostEnergy = Math.min(100, boostEnergy + 0.25);
+            }
+
+            sound.setEngineThrust(isBoosting && boostEnergy > 0);
+        }
+
+        let lastTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const now = performance.now();
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (isPlaying) {
+                distance += currentSpeed * 0.8;
+                document.getElementById('distance-val').textContent = `${Math.floor(distance)} m`;
+                document.getElementById('speed-val').textContent = `VELOCITY: ${Math.floor(currentSpeed * 46)} KM/H`;
+
+                updateFPVFlightControls();
+
+                // --- REALISTIC INFINITE GRID SCROLLING & PERSPECTIVE MOVEMENT ---
+                // The floor and ceiling grids scroll with full vector accuracy relative to pilot position & speed
+                const gridOffsetZ = (distance * 0.8) % GRID_TILE_SIZE;
+                const gridOffsetX = fpvPos.x % GRID_TILE_SIZE;
+
+                if (floorGridLines) {
+                    floorGridLines.position.x = fpvPos.x - gridOffsetX;
+                    floorGridLines.position.z = camera.position.z + gridOffsetZ - GRID_TILE_SIZE;
+                }
+
+                if (ceilingGridLines) {
+                    ceilingGridLines.position.x = fpvPos.x - gridOffsetX;
+                    ceilingGridLines.position.z = camera.position.z + gridOffsetZ - GRID_TILE_SIZE;
+                }
+
+                // Starfield & Sun Subtle Parallax
+                if (starField) {
+                    const positions = starField.geometry.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 3) {
+                        positions[i + 2] += currentSpeed * 1.3;
+                        if (positions[i + 2] > 20) {
+                            positions[i + 2] = -600;
+                        }
+                    }
+                    starField.geometry.attributes.position.needsUpdate = true;
+                }
+
+                if (sunMesh) {
+                    sunMesh.rotation.z += 0.0003;
+                }
+
+                // FPV Speed Dust Streamer Particles
+                if (speedDust) {
+                    const dustPos = speedDust.geometry.attributes.position.array;
+                    for (let i = 0; i < dustPos.length; i += 3) {
+                        dustPos[i + 2] += currentSpeed * 2.8;
+                        if (dustPos[i + 2] > 10) {
+                            dustPos[i] = fpvPos.x + (Math.random() - 0.5) * 45;
+                            dustPos[i + 1] = fpvPos.y + (Math.random() - 0.5) * 35;
+                            dustPos[i + 2] = -110;
+                        }
+                    }
+                    speedDust.geometry.attributes.position.needsUpdate = true;
+                }
+
+                // Shockwaves
+                for (let i = shockwaves.length - 1; i >= 0; i--) {
+                    const ring = shockwaves[i];
+                    ring.userData.life -= delta * 2.5;
+                    ring.material.opacity = Math.max(0, ring.userData.life);
+                    ring.scale.addScalar(delta * ring.userData.expandSpeed);
+
+                    if (ring.userData.life <= 0) {
+                        scene.remove(ring);
+                        shockwaves.splice(i, 1);
+                    }
+                }
+
+                // Spawn Asteroids
+                if (Math.random() < 0.03 + Math.min(distance / 80000, 0.04)) {
+                    spawnAsteroid();
+                }
+
+                // Update Asteroids
+                for (let i = asteroids.length - 1; i >= 0; i--) {
+                    const ast = asteroids[i];
+                    ast.position.z += currentSpeed * 1.1;
+                    ast.rotation.x += ast.userData.rotSpeedX;
+                    ast.rotation.y += ast.userData.rotSpeedY;
+
+                    const distToPlayer = fpvPos.distanceTo(ast.position);
+
+                    // FPV Near Miss Detection
+                    const nearMissThreshold = ast.userData.radius + 5.5;
+                    if (!ast.userData.nearMissed && distToPlayer < nearMissThreshold && distToPlayer > ast.userData.radius + 1.2) {
+                        if (ast.position.z > fpvPos.z - 3 && ast.position.z < fpvPos.z + 3) {
+                            triggerNearMiss(ast);
+                        }
+                    }
+
+                    // Direct FPV Hull Collision
+                    if (distToPlayer < ast.userData.radius + 1.3) {
+                        sound.playHit();
+                        cameraShakeIntensity = 1.35;
+                        triggerShockwave(ast.position, 0xff007f);
+                        triggerExplosion(ast.position, 0xff007f, 28);
+                        shield -= Math.ceil(ast.userData.radius * 9);
+                        
+                        scene.remove(ast);
+                        asteroids.splice(i, 1);
+
+                        if (shield <= 0) {
+                            shield = 0;
+                            gameOver();
+                        }
+                        updateUI();
+                        continue;
+                    }
+
+                    if (ast.position.z > fpvPos.z + 20) {
+                        scene.remove(ast);
+                        asteroids.splice(i, 1);
+                    }
+                }
+
+                // Lasers
+                for (let i = lasers.length - 1; i >= 0; i--) {
+                    const laser = lasers[i];
+                    laser.position.addScaledVector(laser.userData.dir, laser.userData.speed);
+
+                    let hit = false;
+                    for (let j = asteroids.length - 1; j >= 0; j--) {
+                        const ast = asteroids[j];
+                        if (laser.position.distanceTo(ast.position) < ast.userData.radius + 0.6) {
+                            ast.userData.health -= 1;
+                            triggerExplosion(laser.position, 0x00f0ff, 10);
+                            
+                            if (ast.userData.health <= 0) {
+                                sound.playExplosion();
+                                triggerShockwave(ast.position, 0xff7700);
+                                triggerExplosion(ast.position, 0xff7700, 28);
+                                scene.remove(ast);
+                                asteroids.splice(j, 1);
+                            }
+                            
+                            hit = true;
+                            break;
+                        }
+                    }
+
+                    if (hit || laser.position.distanceTo(fpvPos) > 300) {
+                        scene.remove(laser);
+                        lasers.splice(i, 1);
+                    }
+                }
+
+                // Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.position.addScaledVector(p.userData.vel, delta);
+                    p.userData.life -= delta * 2.2;
+                    p.scale.multiplyScalar(0.93);
+
+                    if (p.userData.life <= 0) {
+                        scene.remove(p);
+                        particles.splice(i, 1);
+                    }
+                }
+
+                updateUI();
+            }
+
+            // Realistic FPV Cockpit Camera Shake Offset
+            if (cameraShakeIntensity > 0) {
+                camera.position.x += (Math.random() - 0.5) * cameraShakeIntensity;
+                camera.position.y += (Math.random() - 0.5) * cameraShakeIntensity;
+                cameraShakeIntensity = Math.max(0, cameraShakeIntensity - delta * 2.5);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function updateUI() {
+            const shieldBar = document.getElementById('shield-bar');
+            const shieldTxt = document.getElementById('shield-txt');
+            if (shieldBar && shieldTxt) {
+                shieldBar.style.width = `${shield}%`;
+                shieldTxt.textContent = `${Math.ceil(shield)}%`;
+            }
+
+            const boostBar = document.getElementById('boost-bar');
+            const boostTxt = document.getElementById('boost-txt');
+            if (boostBar && boostTxt) {
+                boostBar.style.width = `${boostEnergy}%`;
+                boostTxt.textContent = `${Math.ceil(boostEnergy)}%`;
+            }
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function startGame() {
+            sound.init();
+
+            asteroids.forEach(a => scene.remove(a));
+            lasers.forEach(l => scene.remove(l));
+            particles.forEach(p => scene.remove(p));
+            shockwaves.forEach(s => scene.remove(s));
+            
+            asteroids = [];
+            lasers = [];
+            particles = [];
+            shockwaves = [];
+            cameraShakeIntensity = 0;
+            nearMissCombo = 0;
+
+            shield = 100;
+            boostEnergy = 100;
+            distance = 0;
+            fpvPos.set(0, 0, 0);
+            fpvRot.set(0, 0, 0);
+            fpvVelocity.set(0, 0, 0);
+
+            document.getElementById('screen-overlay').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            isPlaying = true;
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            sound.playExplosion();
+            triggerShockwave(fpvPos, 0xff007f);
+            triggerExplosion(fpvPos, 0xff007f, 50);
+
+            const isNewHigh = distance > highscore;
+            if (isNewHigh) {
+                highscore = distance;
+                localStorage.setItem('synth_escape_highscore', highscore);
+                document.getElementById('highscore-val').textContent = `${Math.floor(highscore)} m`;
+                document.getElementById('menu-highscore').textContent = `${Math.floor(highscore)} m`;
+                document.getElementById('new-highscore-tag').classList.remove('hidden');
+            } else {
+                document.getElementById('new-highscore-tag').classList.add('hidden');
+            }
+
+            document.getElementById('final-distance').textContent = `${Math.floor(distance)} m`;
+            document.getElementById('main-menu-panel').classList.add('hidden');
+            document.getElementById('settings-panel').classList.add('hidden');
+            document.getElementById('howto-panel').classList.add('hidden');
+            document.getElementById('gameover-panel').classList.remove('hidden');
+            document.getElementById('screen-overlay').classList.remove('hidden');
+        }
+
+        window.onload = function() {
+            initThree();
+            setupControls();
+            animate();
+        };
+    </script>
+</body>
+</html>
