@@ -1,0 +1,20 @@
+/* STREAMING_CHUNK:Defining PWA metadata and icon configurations... */
+{
+"name": "Retro Synthwave Flight: FPV Asteroid Cruise",
+"short_name": "FPV Synth Pilot",
+"description": "Retro First-Person Space Flight Simulator & Synthwave Asteroid Escape",
+"start_url": "./index.html",
+"scope": "./",
+"display": "fullscreen",
+"orientation": "landscape",
+"background_color": "#0d0221",
+"theme_color": "#ff007f",
+"icons": [
+{
+"src": "data:image/svg+xml,",
+"sizes": "192x192 512x512",
+"type": "image/svg+xml",
+"purpose": "any maskable"
+}
+]
+}
