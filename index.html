@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff007f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FPV Synth Pilot">
+    <link rel="manifest" href="manifest.json">
+
     <title>Retro Synthwave Flight: FPV Asteroid Cruise</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -613,6 +620,10 @@
         let floorGridLines, ceilingGridLines;
         let sunGroup, sunMesh;
 
+        // 3D Cockpit Objects & Interactive 3D Joystick
+        let cockpitGroup, joystickPivot, joystickStick, throttlePivot;
+        let hudHoloProjector, speedoGaugeNeedle;
+
         // Camera Shake & Near Miss State
         let cameraShakeIntensity = 0;
         let nearMissCombo = 0;
@@ -658,6 +669,7 @@
             scene.fog = new THREE.FogExp2(0x0d0221, 0.0035);
             
             camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1000);
+            scene.add(camera); // Add camera to scene so camera children (3D Cockpit) render seamlessly
             
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -674,12 +686,106 @@
             dirLight.position.set(0, 30, -100);
             scene.add(dirLight);
 
+            // Cockpit interior spotlight
+            const cockpitLight = new THREE.PointLight(0x00f0ff, 1.2, 5);
+            cockpitLight.position.set(0, -0.2, -0.6);
+            camera.add(cockpitLight);
+
             createRealisticInfiniteGrids();
             createRetroSunset();
             createStarfield();
             createSpeedDustParticles();
+            create3DCockpit();
 
             window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function create3DCockpit() {
+            cockpitGroup = new THREE.Group();
+
+            // --- 1. Interactive 3D Flight Joystick ---
+            joystickPivot = new THREE.Group();
+            joystickPivot.position.set(0.35, -0.62, -0.85); // Positioned in pilot's right hand reach
+            
+            // Joystick Base Ring & Gimbal
+            const baseGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.08, 16);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x120824, metalness: 0.9, roughness: 0.2 });
+            const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+            joystickPivot.add(baseMesh);
+
+            const leatherBootGeo = new THREE.ConeGeometry(0.16, 0.12, 12);
+            const bootMat = new THREE.MeshStandardMaterial({ color: 0x220033, roughness: 0.9 });
+            const bootMesh = new THREE.Mesh(leatherBootGeo, bootMat);
+            bootMesh.position.y = 0.05;
+            joystickPivot.add(bootMesh);
+
+            // Moving Stick Rod & Hand Grip Handle
+            joystickStick = new THREE.Group();
+            joystickStick.position.set(0, 0.06, 0);
+
+            // Main Shaft
+            const shaftGeo = new THREE.CylinderGeometry(0.025, 0.035, 0.38, 12);
+            const shaftMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, metalness: 0.8, emissive: 0x00f0ff, emissiveIntensity: 0.2 });
+            const shaftMesh = new THREE.Mesh(shaftGeo, shaftMat);
+            shaftMesh.position.y = 0.19;
+            joystickStick.add(shaftMesh);
+
+            // Ergonomic Flight Stick Grip
+            const gripGeo = new THREE.BoxGeometry(0.08, 0.22, 0.12);
+            const gripMat = new THREE.MeshStandardMaterial({ color: 0x1a0d33, roughness: 0.4 });
+            const gripMesh = new THREE.Mesh(gripGeo, gripMat);
+            gripMesh.position.set(0, 0.32, -0.02);
+            gripMesh.rotation.x = -0.15;
+            joystickStick.add(gripMesh);
+
+            // Red Trigger & Thumb Fire Button
+            const triggerGeo = new THREE.BoxGeometry(0.03, 0.06, 0.04);
+            const triggerMat = new THREE.MeshBasicMaterial({ color: 0xff007f });
+            const triggerMesh = new THREE.Mesh(triggerGeo, triggerMat);
+            triggerMesh.position.set(0, 0.38, -0.07);
+            joystickStick.add(triggerMesh);
+
+            const thumbBtnGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.02, 12);
+            const thumbBtnMat = new THREE.MeshBasicMaterial({ color: 0xff7700 });
+            const thumbBtnMesh = new THREE.Mesh(thumbBtnGeo, thumbBtnMat);
+            thumbBtnMesh.position.set(0, 0.42, -0.03);
+            thumbBtnMesh.rotation.x = -0.2;
+            joystickStick.add(thumbBtnMesh);
+
+            joystickPivot.add(joystickStick);
+            cockpitGroup.add(joystickPivot);
+
+            // --- 2. Left Hand Throttle / Boost Lever ---
+            throttlePivot = new THREE.Group();
+            throttlePivot.position.set(-0.45, -0.65, -0.85);
+
+            const throttleBaseMesh = new THREE.Mesh(baseGeo, baseMat);
+            throttlePivot.add(throttleBaseMesh);
+
+            const leverGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.28, 10);
+            const leverMat = new THREE.MeshStandardMaterial({ color: 0xff7700, emissive: 0xff7700, emissiveIntensity: 0.3 });
+            const leverMesh = new THREE.Mesh(leverGeo, leverMat);
+            leverMesh.position.y = 0.14;
+            throttlePivot.add(leverMesh);
+
+            const knobGeo = new THREE.BoxGeometry(0.12, 0.07, 0.12);
+            const knobMat = new THREE.MeshStandardMaterial({ color: 0x2b004a, roughness: 0.3 });
+            const knobMesh = new THREE.Mesh(knobGeo, knobMat);
+            knobMesh.position.set(0, 0.28, 0);
+            throttlePivot.add(knobMesh);
+
+            cockpitGroup.add(throttlePivot);
+
+            // --- 3. Hologram HUD Center Ring & Wireframe Displays ---
+            const holoGeo = new THREE.RingGeometry(0.12, 0.14, 24);
+            const holoMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+            hudHoloProjector = new THREE.Mesh(holoGeo, holoMat);
+            hudHoloProjector.position.set(0, -0.28, -0.85);
+            hudHoloProjector.rotation.x = Math.PI / 3;
+            cockpitGroup.add(hudHoloProjector);
+
+            // Attach 3D Cockpit directly to camera view
+            camera.add(cockpitGroup);
         }
 
         function createRealisticInfiniteGrids() {
@@ -1250,6 +1356,34 @@
             const speedFactor = isBoosting && boostEnergy > 5 ? 1.85 : 1.0;
             currentSpeed = baseSpeed * speedFactor;
 
+            // --- ANIMATE 3D COCKPIT JOYSTICK PHYSICAL MOVEMENT ---
+            if (joystickStick) {
+                // Pitch rotates joystick forward/backward (X axis)
+                // Roll rotates joystick side-to-side (Z axis)
+                const targetJoyPitch = rawPitch * 0.45;
+                const targetJoyRoll = rawRoll * 0.45;
+
+                joystickStick.rotation.x += (targetJoyPitch - joystickStick.rotation.x) * 0.18;
+                joystickStick.rotation.z += (-targetJoyRoll - joystickStick.rotation.z) * 0.18;
+            }
+
+            // --- ANIMATE 3D THROTTLE LEVER ---
+            if (throttlePivot) {
+                const targetThrottleRot = isBoosting ? -0.35 : 0.0;
+                throttlePivot.rotation.x += (targetThrottleRot - throttlePivot.rotation.x) * 0.15;
+            }
+
+            // --- ANIMATE HOLOGRAM HUD PROJECTOR RING ---
+            if (hudHoloProjector) {
+                hudHoloProjector.rotation.z += 0.02;
+            }
+
+            // Subtle Cockpit Bobbing / Flight Inertia Vibration
+            if (cockpitGroup) {
+                cockpitGroup.position.x = Math.sin(performance.now() * 0.005) * 0.008;
+                cockpitGroup.position.y = Math.cos(performance.now() * 0.006) * 0.008 + (isBoosting ? (Math.random() - 0.5) * 0.015 : 0);
+            }
+
             // Lateral and vertical flight velocity vector
             const targetVelX = rawRoll * 0.48 * speedFactor;
             const targetVelY = (invertPitch ? -rawPitch : rawPitch) * 0.42 * speedFactor;
@@ -1544,6 +1678,12 @@
             initThree();
             setupControls();
             animate();
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((reg) => console.log('Service Worker registered:', reg.scope))
+                    .catch((err) => console.log('Service Worker registration failed:', err));
+            }
         };
     </script>
 </body>
