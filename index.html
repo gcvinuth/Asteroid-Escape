@@ -3,903 +3,624 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#ff007f">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FPV Synth Pilot">
-    <link rel="manifest" href="manifest.json">
-
-    <title>Retro Synthwave Flight: FPV Asteroid Cruise</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- FontAwesome for UI Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    
+    <title>Retro Synthwave Flight - Asteroid Escape</title>
     <style>
-        body, html {
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
             margin: 0;
             padding: 0;
+            touch-action: none;
+        }
+
+        body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #0d0221;
-            font-family: 'Rajdhani', system-ui, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
+            background-color: #050010;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            color: #fff;
         }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        #canvas-container {
-            width: 100%;
-            height: 100%;
+        #game-container {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 1;
         }
 
-        /* Glassmorphism Synthwave Panel */
-        .glass-panel-synth {
-            background: rgba(13, 2, 33, 0.8);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 0, 127, 0.4);
-            box-shadow: 0 0 20px rgba(255, 0, 127, 0.25), inset 0 0 15px rgba(0, 240, 255, 0.15);
-        }
-
-        .text-glow-pink {
-            text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f;
-        }
-
-        .text-glow-orange {
-            text-shadow: 0 0 10px #ff7700, 0 0 20px #ff7700;
-        }
-
-        .text-glow-cyan {
-            text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
-        }
-
-        /* Virtual Joystick Elements */
-        .joystick-zone {
+        /* UI HUD Overlay */
+        #hud {
             position: absolute;
-            bottom: 30px;
-            left: 30px;
-            width: 140px;
-            height: 140px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+        }
+
+        /* Top Bar Panels */
+        .top-hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .synth-card {
+            background: rgba(15, 3, 25, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 2px solid #ff007f;
+            border-radius: 12px;
+            padding: 10px 16px;
+            color: #e2e8f0;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.15);
+            min-width: 150px;
+        }
+
+        .bar-container {
+            margin-bottom: 8px;
+        }
+
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #ff00aa;
+            margin-bottom: 3px;
+        }
+
+        .bar-bg {
+            width: 100%;
+            height: 10px;
+            background: rgba(40, 10, 40, 0.8);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 0, 170, 0.5);
+            overflow: hidden;
+        }
+
+        .bar-fill-hull {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ff0055, #ff00aa);
+            box-shadow: 0 0 10px #ff0055;
+            transition: width 0.2s ease;
+        }
+
+        .bar-fill-boost {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ff9900, #ffcc00);
+            box-shadow: 0 0 10px #ff9900;
+            transition: width 0.1s ease;
+        }
+
+        /* Top Center Menu / Pause */
+        .menu-btn-card {
+            pointer-events: auto;
+            background: rgba(15, 3, 25, 0.8);
+            border: 2px solid #a855f7;
+            border-radius: 20px;
+            padding: 6px 18px;
+            color: #d8b4fe;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+            cursor: pointer;
+        }
+
+        .stat-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #ff00aa;
+            text-shadow: 0 0 8px #ff00aa;
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 900;
+            font-family: monospace;
+            color: #ff33aa;
+            text-shadow: 0 0 12px rgba(255, 51, 170, 0.8);
+            line-height: 1.1;
+        }
+
+        .stat-sub {
+            font-size: 10px;
+            color: #38bdf8;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
+        /* Center Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 44px;
+            pointer-events: none;
+            border: 2px dashed #00f0ff;
             border-radius: 50%;
-            background: rgba(255, 0, 127, 0.08);
-            border: 2px solid rgba(255, 0, 127, 0.5);
-            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
-            touch-action: none;
-            z-index: 20;
+            box-shadow: 0 0 10px #00f0ff;
+            opacity: 0.85;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .joystick-knob {
-            width: 55px;
-            height: 55px;
+        #crosshair::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #ff00aa;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 119, 0, 0.9) 0%, rgba(255, 0, 127, 0.6) 100%);
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 18px rgba(255, 119, 0, 0.8);
-            position: absolute;
-            transform: translate(0, 0);
-            pointer-events: none;
+            box-shadow: 0 0 8px #ff00aa;
         }
 
-        /* CRT Scanline Overlay */
-        .scanlines {
+        /* Bottom Controls Container */
+        #controls-area {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(18, 16, 26, 0) 50%, rgba(255, 0, 127, 0.12) 50%);
-            background-size: 100% 4px;
-            z-index: 2;
-            pointer-events: none;
-            opacity: 0.6;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            pointer-events: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 20px;
         }
 
-        /* Screen Shake Vignette & Near Miss Banner */
-        .near-miss-vignette {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 5;
-            box-shadow: inset 0 0 80px rgba(0, 240, 255, 0.9), inset 0 0 140px rgba(255, 0, 127, 0.7);
-            opacity: 0;
-            transition: opacity 0.15s ease-out;
+        /* Synthwave Yoke Controller */
+        #yoke-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 0, 127, 0.15) 0%, rgba(10, 0, 20, 0.85) 100%);
+            border: 2px solid #ff00aa;
+            box-shadow: 0 0 20px rgba(255, 0, 170, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+            margin-left: 10px;
         }
 
-        .near-miss-pop {
+        #yoke-wheel {
             position: absolute;
-            top: 35%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.5);
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 900;
-            color: #00f0ff;
-            text-shadow: 0 0 15px #00f0ff, 0 0 30px #ff007f;
-            pointer-events: none;
-            z-index: 15;
-            opacity: 0;
-            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease-out;
+            width: 110px;
+            height: 80px;
+            transform-origin: center center;
+            transition: transform 0.05s ease-out;
+            filter: drop-shadow(0 0 8px #00f0ff);
         }
 
-        /* FPV HUD Crosshair */
-        .fpv-crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .fpv-ring {
+        .yoke-svg {
             width: 100%;
             height: 100%;
-            border: 2px dashed rgba(0, 240, 255, 0.8);
+        }
+
+        /* Boost Button */
+        #boost-btn {
+            width: 75px;
+            height: 75px;
             border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
-            animation: fpvSpin 15s linear infinite;
+            background: radial-gradient(circle, #ff9900 0%, #cc0055 100%);
+            border: 2px solid #ffea00;
+            color: #fff;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.7);
+            pointer-events: auto;
+            margin-right: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
         }
 
-        .fpv-pitch-ladder {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 180px;
-            height: 100px;
-            border-left: 2px solid rgba(255, 0, 127, 0.5);
-            border-right: 2px solid rgba(255, 0, 127, 0.5);
-            pointer-events: none;
-            z-index: 9;
-            transition: transform 0.05s ease-out;
-        }
-
-        @keyframes fpvSpin { 100% { transform: rotate(360deg); } }
-
-        .fpv-dot {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 6px; height: 6px;
-            background: #ff007f;
-            border-radius: 50%;
-            box-shadow: 0 0 12px #ff007f, 0 0 20px #ff007f;
-        }
-
-        /* Directional Arrow Touch Button Styling */
-        .touch-btn {
-            background: rgba(13, 2, 33, 0.75);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 2px solid rgba(0, 240, 255, 0.5);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
-            user-select: none;
-            touch-action: none;
-        }
-
-        .touch-btn:active, .touch-btn.active {
-            background: rgba(0, 240, 255, 0.4);
-            box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
+        #boost-btn:active {
             transform: scale(0.92);
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.9);
         }
 
-        .touch-btn-pink {
-            border-color: rgba(255, 0, 127, 0.6);
-            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+        /* Modals */
+        .modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 0, 16, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            text-align: center;
         }
 
-        .touch-btn-pink:active, .touch-btn-pink.active {
-            background: rgba(255, 0, 127, 0.4);
-            box-shadow: 0 0 25px rgba(255, 0, 127, 0.8);
+        .modal-card {
+            background: rgba(20, 2, 35, 0.95);
+            border: 2px solid #ff00aa;
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 360px;
+            width: 90%;
+            box-shadow: 0 0 30px rgba(255, 0, 170, 0.5);
         }
 
-        .touch-btn-orange {
-            border-color: rgba(255, 119, 0, 0.6);
-            box-shadow: 0 0 15px rgba(255, 119, 0, 0.3);
+        h1 {
+            font-size: 26px;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #00f0ff, #ff00aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 10px rgba(255, 0, 170, 0.5);
         }
 
-        .touch-btn-orange:active, .touch-btn-orange.active {
-            background: rgba(255, 119, 0, 0.4);
-            box-shadow: 0 0 25px rgba(255, 119, 0, 0.8);
+        p {
+            color: #a5f3fc;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .instructions {
+            background: rgba(35, 5, 55, 0.7);
+            border: 1px solid rgba(255, 0, 170, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 12px;
+            color: #e0e7ff;
+        }
+
+        .instructions li {
+            margin-bottom: 6px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .instructions li::before {
+            content: "❖";
+            color: #00f0ff;
+            margin-right: 8px;
+            font-size: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ff00aa, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 800;
+            border-radius: 30px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 0 18px rgba(255, 0, 170, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .control-guide {
+            position: absolute;
+            bottom: 190px;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #00f0ff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            pointer-events: none;
+            text-shadow: 0 0 8px #00f0ff;
+        }
+
+        /* Screen Flash on Damage */
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 0, 85, 0.6) 0%, rgba(255, 0, 85, 0.1) 100%);
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.1s ease-out;
         }
     </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body class="text-white select-none overflow-hidden">
+<body>
 
-    <!-- 3D Render Canvas -->
-    <div id="canvas-container"></div>
-    <div class="scanlines"></div>
-
-    <!-- Near Miss Visual Effects -->
-    <div id="near-miss-vignette" class="near-miss-vignette"></div>
-    <div id="near-miss-banner" class="near-miss-pop text-2xl sm:text-3xl tracking-widest uppercase">NEAR MISS!</div>
-    
-    <!-- FPV Cockpit Reticle & Flight Horizon Indicator -->
-    <div class="fpv-crosshair">
-        <div class="fpv-ring"></div>
-        <div class="fpv-dot"></div>
-    </div>
-    <div id="pitch-ladder" class="fpv-pitch-ladder"></div>
+    <div id="game-container"></div>
+    <div id="damage-overlay"></div>
 
     <!-- HUD Overlay -->
-    <div id="hud" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-6 hidden">
-        
-        <!-- Top Bar: Stats & Pause Settings Trigger -->
-        <div class="flex justify-between items-start w-full gap-2 sm:gap-4 pointer-events-auto">
-            <!-- Shield & Boost Energy Bar -->
-            <div class="glass-panel-synth p-2.5 sm:p-4 rounded-xl w-44 sm:w-64">
-                <div class="flex justify-between text-[10px] sm:text-xs font-bold tracking-wider text-pink-400 mb-1 font-orbitron">
-                    <span><i class="fa-solid fa-shield-halved mr-1 text-pink-500"></i> HULL</span>
-                    <span id="shield-txt" class="text-glow-pink">100%</span>
+    <div id="hud">
+        <div class="top-hud">
+            <!-- Left Panel: Hull & Boost -->
+            <div class="synth-card">
+                <div class="bar-container">
+                    <div class="bar-label">
+                        <span>HULL</span>
+                        <span id="hull-val">100%</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div id="hull-bar" class="bar-fill-hull"></div>
+                    </div>
                 </div>
-                <div class="w-full bg-slate-900/80 rounded-full h-2.5 sm:h-3 overflow-hidden p-0.5 border border-pink-500/40">
-                    <div id="shield-bar" class="bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 h-full rounded-full transition-all duration-200 shadow-[0_0_10px_#ff007f]" style="width: 100%;"></div>
-                </div>
-
-                <!-- FPV Synth Boost Energy -->
-                <div class="flex justify-between text-[10px] sm:text-xs font-bold tracking-wider text-amber-400 mb-1 mt-2 sm:mt-3 font-orbitron">
-                    <span><i class="fa-solid fa-bolt mr-1 text-orange-400"></i> BOOST</span>
-                    <span id="boost-txt" class="text-glow-orange">100%</span>
-                </div>
-                <div class="w-full bg-slate-900/80 rounded-full h-2 sm:h-2.5 overflow-hidden p-0.5 border border-orange-500/40">
-                    <div id="boost-bar" class="bg-gradient-to-r from-orange-500 to-cyan-400 h-full rounded-full transition-all duration-100 shadow-[0_0_8px_#ff7700]" style="width: 100%;"></div>
+                <div class="bar-container" style="margin-bottom:0;">
+                    <div class="bar-label" style="color: #ff9900;">
+                        <span>BOOST</span>
+                        <span id="boost-val">100%</span>
+                    </div>
+                    <div class="bar-bg" style="border-color: rgba(255,153,0,0.5);">
+                        <div id="boost-bar" class="bar-fill-boost"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- In-game Menu/Settings Pause Trigger -->
-            <button id="btn-hud-pause" class="glass-panel-synth px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border border-pink-500/50 text-pink-300 hover:text-white flex items-center gap-2 font-orbitron text-xs sm:text-sm active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,0,127,0.3)]">
-                <i class="fa-solid fa-gear text-cyan-400 text-base"></i> <span class="hidden sm:inline">PAUSE / MENU</span>
-            </button>
+            <!-- Center Menu Button -->
+            <button class="menu-btn-card" id="menu-btn">⚙ PAUSE / MENU</button>
 
-            <!-- FPV Speedometer & Telemetry -->
-            <div class="glass-panel-synth p-2.5 sm:p-4 rounded-xl text-right min-w-[130px] sm:min-w-[160px]">
-                <div class="text-[9px] sm:text-xs font-orbitron tracking-widest text-pink-300/80">FPV DISTANCE</div>
-                <div id="distance-val" class="text-xl sm:text-4xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-orange-300 to-cyan-400 text-glow-pink">0 m</div>
-                <div id="speed-val" class="text-[10px] sm:text-xs font-mono text-cyan-300 mt-0.5">VELOCITY: 52 KM/H</div>
-                <div class="text-[9px] sm:text-[10px] text-pink-300/70 mt-0.5 font-orbitron">BEST: <span id="highscore-val" class="text-amber-300 font-bold">0 m</span></div>
+            <!-- Right Panel: FPV Distance & Speed -->
+            <div class="synth-card" style="text-align: right;">
+                <div class="stat-title">FPV DISTANCE</div>
+                <div id="distance-val" class="stat-value">0 m</div>
+                <div class="stat-sub">VELOCITY: <span id="speed-val" style="color:#00f0ff;">43 KM/H</span></div>
+                <div class="stat-sub">BEST: <span id="best-val" style="color:#ff00aa;">0 m</span></div>
             </div>
         </div>
 
-        <!-- Mobile Controls Container -->
-        <div id="mobile-controls" class="w-full pointer-events-none z-20">
-            <!-- JOYSTICK MODE CONTROLS -->
-            <div id="joystick-layout" class="flex justify-between items-end w-full pointer-events-auto">
-                <div id="joystick-container" class="joystick-zone">
-                    <div id="joystick-knob" class="joystick-knob"></div>
-                </div>
+        <div id="crosshair"></div>
 
-                <div class="flex flex-col space-y-3 mb-2">
-                    <button id="btn-fire" class="w-16 h-16 rounded-full touch-btn touch-btn-pink text-pink-400 flex items-center justify-center text-2xl active:scale-95 transition-transform">
-                        <i class="fa-solid fa-crosshairs"></i>
-                    </button>
-                    <button id="btn-boost" class="w-16 h-16 rounded-full touch-btn touch-btn-orange text-orange-400 flex items-center justify-center text-2xl active:scale-95 transition-transform">
-                        <i class="fa-solid fa-gauge-high"></i>
-                    </button>
-                </div>
-            </div>
+        <div class="control-guide">Pull Down = Climb | Push Up = Dive</div>
 
-            <!-- SPLIT ARROW BUTTONS MODE CONTROLS -->
-            <div id="arrows-layout" class="flex justify-between items-end w-full pointer-events-auto hidden mb-1 px-1">
-                <!-- Left Bottom: Left & Right Steer/Roll Arrows -->
-                <div class="flex space-x-2">
-                    <button id="btn-arrow-left" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
-                        <i class="fa-solid fa-caret-left"></i>
-                    </button>
-                    <button id="btn-arrow-right" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
-                        <i class="fa-solid fa-caret-right"></i>
-                    </button>
-                </div>
-
-                <!-- Right Bottom: Up & Down Pitch Arrows + Action Buttons -->
-                <div class="flex items-center space-x-3">
-                    <!-- Action Fire & Boost -->
-                    <div class="flex flex-col space-y-2">
-                        <button id="btn-fire-alt" class="w-12 h-12 rounded-full touch-btn touch-btn-pink text-pink-400 flex items-center justify-center text-lg">
-                            <i class="fa-solid fa-crosshairs"></i>
-                        </button>
-                        <button id="btn-boost-alt" class="w-12 h-12 rounded-full touch-btn touch-btn-orange text-orange-400 flex items-center justify-center text-lg">
-                            <i class="fa-solid fa-gauge-high"></i>
-                        </button>
-                    </div>
-
-                    <!-- Up / Down Pitch Arrows -->
-                    <div class="flex flex-col space-y-2">
-                        <button id="btn-arrow-up" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
-                            <i class="fa-solid fa-caret-up"></i>
-                        </button>
-                        <button id="btn-arrow-down" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl touch-btn text-cyan-300 flex items-center justify-center text-2xl active:scale-95 transition-transform">
-                            <i class="fa-solid fa-caret-down"></i>
-                        </button>
-                    </div>
+        <!-- Controls Area -->
+        <div id="controls-area">
+            <div id="yoke-container">
+                <div id="yoke-wheel">
+                    <!-- SVG Flight Yoke with Synthwave Colors -->
+                    <svg class="yoke-svg" viewBox="0 0 100 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 15,10 C 5,10 5,35 15,50 C 22,60 32,55 35,45 C 38,35 30,25 25,25 C 20,25 20,15 30,15 L 70,15 C 80,15 80,25 75,25 C 70,25 62,35 65,45 C 68,55 78,60 85,50 C 95,35 95,10 85,10 C 70,0 30,0 15,10 Z" fill="#1e0033" stroke="#ff00aa" stroke-width="2.5"/>
+                        <rect x="42" y="30" width="16" height="35" rx="4" fill="#0d001a" stroke="#00f0ff" stroke-width="2"/>
+                        <circle cx="50" cy="20" r="8" fill="#ff00aa" stroke="#00f0ff" stroke-width="2"/>
+                        <path d="M 8,20 C 6,20 6,40 10,48" stroke="#00f0ff" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M 92,20 C 94,20 94,40 90,48" stroke="#00f0ff" stroke-width="4" stroke-linecap="round"/>
+                    </svg>
                 </div>
             </div>
+
+            <button id="boost-btn">BOOST</button>
         </div>
     </div>
 
-    <!-- Main Menu & Settings Overlay Screens -->
-    <div id="screen-overlay" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-purple-950/85 backdrop-blur-md">
-        
-        <!-- MAIN MENU PANEL -->
-        <div id="main-menu-panel" class="glass-panel-synth p-6 sm:p-8 rounded-2xl max-w-md w-full text-center border border-pink-500/50 shadow-2xl">
-            <div class="inline-flex p-4 rounded-2xl bg-gradient-to-tr from-pink-500/20 to-orange-500/20 text-pink-400 mb-2 border border-pink-500/40 shadow-[0_0_25px_rgba(255,0,127,0.3)]">
-                <i class="fa-solid fa-vr-cardboard text-4xl sm:text-5xl text-amber-400"></i>
-            </div>
-            <h1 class="text-3xl sm:text-4xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-orange-400 to-cyan-300 text-glow-pink mb-1">FPV SYNTH PILOT</h1>
-            <p class="text-xs sm:text-sm text-pink-200/90 mb-6 font-semibold">Retro First-Person Space Flight Simulator</p>
+    <!-- Start Screen Modal -->
+    <div id="start-modal" class="modal">
+        <div class="modal-card">
+            <h1>ASTEROID ESCAPE</h1>
+            <p>Retro Synthwave Jet Flight Simulation</p>
             
-            <div class="space-y-3 mb-6">
-                <button id="btn-start-game" class="w-full py-3.5 bg-gradient-to-r from-pink-600 via-orange-500 to-pink-500 hover:from-pink-500 hover:to-orange-400 text-white font-black font-orbitron rounded-xl shadow-[0_0_20px_rgba(255,0,127,0.5)] active:scale-[0.98] transition-all text-base sm:text-lg tracking-widest flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> LAUNCH FLIGHT
-                </button>
-
-                <button id="btn-open-settings" class="w-full py-3 bg-slate-900/80 hover:bg-slate-800 text-cyan-300 hover:text-white font-bold font-orbitron rounded-xl border border-cyan-500/40 active:scale-[0.98] transition-all text-sm tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-sliders"></i> SETTINGS & CONTROLS
-                </button>
-
-                <button id="btn-open-howto" class="w-full py-2.5 bg-slate-950/60 hover:bg-slate-900 text-pink-300 font-bold font-orbitron rounded-xl border border-pink-500/30 active:scale-[0.98] transition-all text-xs tracking-wider flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-info"></i> HOW TO PLAY
-                </button>
+            <div class="instructions">
+                <ul>
+                    <li><b>Yoke Joystick:</b> Touch & drag central yoke</li>
+                    <li><b>Inverted Pitch:</b> Drag DOWN to Fly Up, UP to Dive</li>
+                    <li><b>Steer Left/Right:</b> Rotate yoke handles</li>
+                    <li><b>Boost:</b> Hold BOOST button for double speed</li>
+                </ul>
             </div>
 
-            <div class="text-[11px] text-pink-300/70 font-orbitron">
-                BEST RECORD: <span id="menu-highscore" class="text-amber-300 font-bold">0 m</span>
-            </div>
+            <button id="start-btn" class="btn">LAUNCH MISSION</button>
         </div>
+    </div>
 
-        <!-- SETTINGS PANEL -->
-        <div id="settings-panel" class="glass-panel-synth p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50 shadow-2xl hidden">
-            <div class="flex items-center justify-between pb-3 mb-4 border-b border-pink-500/30">
-                <h2 class="text-xl sm:text-2xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 text-glow-cyan">
-                    <i class="fa-solid fa-gear mr-2"></i>SETTINGS
-                </h2>
-                <button id="btn-close-settings" class="text-pink-400 hover:text-white text-xl p-1">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- Controls Mode Selection -->
-            <div class="space-y-4 text-xs font-orbitron">
-                <div>
-                    <label class="block text-pink-300 mb-2 font-bold tracking-wider">MOBILE CONTROLS SCHEME</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button id="opt-ctrl-joystick" class="p-3 rounded-xl border border-pink-500/80 bg-pink-600/30 text-white font-bold flex flex-col items-center gap-1 active:scale-95 transition-all">
-                            <i class="fa-solid fa-gamepad text-2xl text-amber-400"></i>
-                            <span>JOYSTICK</span>
-                        </button>
-                        <button id="opt-ctrl-arrows" class="p-3 rounded-xl border border-pink-500/30 bg-slate-900/60 text-pink-300 font-bold flex flex-col items-center gap-1 active:scale-95 transition-all">
-                            <i class="fa-solid fa-up-down-left-right text-2xl text-cyan-400"></i>
-                            <span>SPLIT ARROWS</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Pitch Inversion -->
-                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-pink-500/30">
-                    <div>
-                        <div class="text-pink-200 font-bold">INVERT PITCH CONTROL</div>
-                        <div class="text-[10px] text-pink-300/60 font-sans">Flight stick inverted Y-axis</div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-invert-settings" class="sr-only peer" checked>
-                        <div class="w-9 h-5 bg-pink-950 border border-pink-500/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
-                    </label>
-                </div>
-
-                <!-- Sound FX Toggle -->
-                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/70 border border-pink-500/30">
-                    <div class="text-pink-200 font-bold">SYNTH SOUND FX</div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-audio-settings" class="sr-only peer" checked>
-                        <div class="w-9 h-5 bg-pink-950 border border-pink-500/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
-                    </label>
-                </div>
-            </div>
-
-            <div class="mt-6 flex gap-2">
-                <button id="btn-settings-back" class="w-full py-3 bg-gradient-to-r from-pink-600 to-orange-500 text-white font-bold font-orbitron rounded-xl active:scale-[0.98] transition-all tracking-wider">
-                    SAVE & BACK
-                </button>
-            </div>
-        </div>
-
-        <!-- HOW TO PLAY PANEL -->
-        <div id="howto-panel" class="glass-panel-synth p-6 sm:p-8 rounded-2xl max-w-md w-full border border-pink-500/50 shadow-2xl hidden">
-            <h2 class="text-xl font-black font-orbitron text-pink-400 mb-3 border-b border-pink-500/30 pb-2">
-                <i class="fa-solid fa-gamepad mr-2"></i>CONTROLS GUIDE
-            </h2>
-            <div class="text-xs text-pink-200 space-y-3 mb-6 font-sans">
-                <div class="p-2.5 rounded-lg bg-slate-950/80 border border-pink-500/30">
-                    <div class="font-bold text-amber-300 font-orbitron mb-1">MOBILE JOYSTICK MODE:</div>
-                    <p>• Left side: Drag joystick for 360° flight pitch & roll steer.</p>
-                    <p>• Right side: Tap buttons to Fire Lasers and Engage Boost.</p>
-                </div>
-                <div class="p-2.5 rounded-lg bg-slate-950/80 border border-cyan-500/30">
-                    <div class="font-bold text-cyan-300 font-orbitron mb-1">MOBILE ARROWS MODE:</div>
-                    <p>• Left Bottom: Left & Right arrows for bank steering.</p>
-                    <p>• Right Bottom: Up & Down arrows for pitch control.</p>
-                </div>
-                <div class="p-2.5 rounded-lg bg-slate-950/80 border border-pink-500/30">
-                    <div class="font-bold text-pink-300 font-orbitron mb-1">KEYBOARD CONTROLS:</div>
-                    <p>• W / S or Up / Down = Pitch nose</p>
-                    <p>• A / D or Left / Right = Bank steer</p>
-                    <p>• SPACE = Boost | J / Left-Click = Fire</p>
-                </div>
-            </div>
-            <button id="btn-close-howto" class="w-full py-2.5 bg-slate-900 border border-pink-500/40 text-pink-300 font-bold font-orbitron rounded-xl">
-                GOT IT
-            </button>
-        </div>
-
-        <!-- GAME OVER PANEL -->
-        <div id="gameover-panel" class="glass-panel-synth p-8 sm:p-10 rounded-2xl max-w-md w-full text-center border border-rose-500/50 shadow-2xl hidden">
-            <div class="inline-flex p-4 rounded-2xl bg-rose-500/20 text-rose-400 mb-3 border border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
-                <i class="fa-solid fa-burst text-4xl"></i>
-            </div>
-            <h2 class="text-3xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-400 text-glow-pink mb-1">CRASH DETECTED</h2>
-            <p class="text-xs text-pink-200/80 mb-6">Your FPV vessel collided with floating space rock.</p>
+    <!-- Game Over Screen Modal -->
+    <div id="gameover-modal" class="modal hidden">
+        <div class="modal-card">
+            <h1 style="background: linear-gradient(to right, #ff0055, #ff00aa); -webkit-background-clip: text;">DESTROYED!</h1>
+            <p>Your ship collided with a space asteroid field.</p>
             
-            <div class="bg-slate-950/80 p-4 rounded-xl mb-6 border border-pink-500/30 text-center">
-                <div class="text-xs font-orbitron text-pink-300 mb-1">TOTAL FPV FLIGHT DISTANCE</div>
-                <div id="final-distance" class="text-4xl font-black font-orbitron text-cyan-300 text-glow-cyan mb-2">0 m</div>
-                <div id="new-highscore-tag" class="inline-block px-3 py-1 bg-orange-500/20 text-amber-300 text-xs font-bold font-orbitron rounded-full border border-orange-500/50 hidden">
-                    <i class="fa-solid fa-trophy mr-1"></i> NEW BEST DISTANCE!
-                </div>
+            <div class="synth-card" style="margin-bottom: 20px; padding: 15px; text-align: center;">
+                <div class="stat-title">FINAL DISTANCE</div>
+                <div id="final-distance" class="stat-value" style="font-size: 36px; margin-top:5px;">0 m</div>
             </div>
 
-            <div class="space-y-3">
-                <button id="btn-restart" class="w-full py-3.5 bg-gradient-to-r from-rose-600 via-orange-500 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black font-orbitron rounded-xl shadow-[0_0_25px_rgba(255,0,127,0.5)] active:scale-[0.98] transition-all text-base tracking-widest">
-                    FLY AGAIN
-                </button>
-                <button id="btn-return-menu" class="w-full py-2.5 bg-slate-900 border border-pink-500/30 text-pink-300 font-bold font-orbitron rounded-xl text-xs tracking-wider">
-                    MAIN MENU
-                </button>
-            </div>
+            <button id="restart-btn" class="btn">RETRY FLIGHT</button>
         </div>
     </div>
 
     <script>
-        class SynthEngine {
-            constructor() {
-                this.ctx = null;
-                this.initialized = false;
-                this.bassGain = null;
-                this.bassOsc = null;
-                this.filter = null;
-            }
-
-            init() {
-                if (this.initialized) return;
-                try {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    this.ctx = new AudioContext();
-                    this.initialized = true;
-                    this.setupSynthBass();
-                } catch (e) {
-                    console.log('Web Audio disabled');
-                }
-            }
-
-            setupSynthBass() {
-                if (!this.ctx) return;
-                this.bassOsc = this.ctx.createOscillator();
-                this.filter = this.ctx.createBiquadFilter();
-                this.bassGain = this.ctx.createGain();
-
-                this.bassOsc.type = 'sawtooth';
-                this.bassOsc.frequency.setValueAtTime(42, this.ctx.currentTime); 
-
-                this.filter.type = 'lowpass';
-                this.filter.frequency.setValueAtTime(140, this.ctx.currentTime);
-
-                this.bassGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
-
-                this.bassOsc.connect(this.filter);
-                this.filter.connect(this.bassGain);
-                this.bassGain.connect(this.ctx.destination);
-                this.bassOsc.start();
-            }
-
-            setEngineThrust(isBoosting) {
-                if (!this.ctx || !this.bassGain) return;
-                const targetFreq = isBoosting ? 92 : 42;
-                const filterFreq = isBoosting ? 400 : 140;
-                const targetGain = isBoosting ? 0.18 : 0.06;
-
-                this.bassOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.15);
-                this.filter.frequency.setTargetAtTime(filterFreq, this.ctx.currentTime, 0.2);
-                this.bassGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.15);
-            }
-
-            playLaser() {
-                if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(950, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.18);
-
-                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.18);
-            }
-
-            playExplosion() {
-                if (!this.ctx) return;
-                const bufferSize = this.ctx.sampleRate * 0.5;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(450, this.ctx.currentTime);
-                filter.frequency.linearRampToValueAtTime(35, this.ctx.currentTime + 0.5);
-
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.38, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start();
-            }
-
-            playHit() {
-                if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(240, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(45, this.ctx.currentTime + 0.25);
-
-                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.25);
-            }
-
-            playNearMiss() {
-                if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(350, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.2);
-
-                gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.2);
-            }
-        }
-
-        const sound = new SynthEngine();
-
-        const container = document.getElementById('canvas-container');
-        
+        // Global Variables
         let scene, camera, renderer;
+        let cockpitYokeLeft, cockpitYokeRight; // Cockpit yoke handles visible in 3D camera
         let asteroids = [];
-        let lasers = [];
-        let particles = [];
-        let speedDust = [];
-        let shockwaves = [];
-        let starField;
+        let particlesSystem;
+        let gridFloor, gridCeiling;
         
-        // Realistic Infinite Grid Objects
-        let floorGridLines, ceilingGridLines;
-        let sunGroup, sunMesh;
-
-        // 3D Cockpit Objects & Interactive 3D Joystick
-        let cockpitGroup, joystickPivot, joystickStick, throttlePivot;
-        let hudHoloProjector, speedoGaugeNeedle;
-
-        // Camera Shake & Near Miss State
-        let cameraShakeIntensity = 0;
-        let nearMissCombo = 0;
-
-        // GAME PARAMETERS
         let isPlaying = false;
         let distance = 0;
-        let highscore = localStorage.getItem('synth_escape_highscore') || 0;
-        let shield = 100;
-        let boostEnergy = 100;
-        let isBoosting = false;
-        
-        let baseSpeed = 0.95; 
+        let bestDistance = 0;
+        let baseSpeed = 0.6;
         let currentSpeed = baseSpeed;
-        let invertPitch = true;
-        let soundEnabled = true;
-        let controlMode = localStorage.getItem('synth_ctrl_mode') || 'joystick'; // 'joystick' or 'arrows'
 
-        // Controls input state
-        const inputState = { pitch: 0, roll: 0, yaw: 0, fire: false, boost: false };
-        const arrowState = { up: false, down: false, left: false, right: false };
-        const keys = {};
+        // Player Stats
+        let hullIntegrity = 100;
+        let boostAmount = 100;
+        let isBoosting = false;
 
-        // FPV Flight Dynamics Physics Variables
-        const fpvPos = new THREE.Vector3(0, 0, 0);       // World position of FPV pilot
-        const fpvVelocity = new THREE.Vector3(0, 0, 0);  // Smooth flight velocity momentum
-        const fpvRot = new THREE.Euler(0, 0, 0, 'YXZ');  // Pitch, Yaw, Roll angles
-        
-        const maxPitch = Math.PI / 4.8; 
-        const maxRoll = Math.PI / 2.4; 
-        const boundX = 35; 
-        const boundY = 20;
+        // Screen Shake variables
+        let shakeIntensity = 0;
+        let shakeDecay = 0.9;
+        const damageOverlayEl = document.getElementById('damage-overlay');
 
-        // Grid spacing tile dimensions for realistic spatial scrolling
-        const GRID_TILE_SIZE = 20;
-        const GRID_EXTENT = 600;
+        // Yoke Controls Input
+        let yokeInput = { x: 0, y: 0 };
+        let isDraggingYoke = false;
 
-        document.getElementById('highscore-val').textContent = `${Math.floor(highscore)} m`;
-        document.getElementById('menu-highscore').textContent = `${Math.floor(highscore)} m`;
+        // Flight Movement Limits & Positions
+        const flightLimits = { x: 30, yMin: -15, yMax: 20 };
+        let flightPos = { x: 0, y: 0 };
+        let flightRot = { pitch: 0, roll: 0, yaw: 0 };
 
-        function initThree() {
+        // HTML Elements
+        const yokeContainer = document.getElementById('yoke-container');
+        const yokeWheel = document.getElementById('yoke-wheel');
+        const distanceValEl = document.getElementById('distance-val');
+        const speedValEl = document.getElementById('speed-val');
+        const bestValEl = document.getElementById('best-val');
+        const hullBarEl = document.getElementById('hull-bar');
+        const hullValEl = document.getElementById('hull-val');
+        const boostBarEl = document.getElementById('boost-bar');
+        const boostValEl = document.getElementById('boost-val');
+        const startModal = document.getElementById('start-modal');
+        const gameoverModal = document.getElementById('gameover-modal');
+        const finalDistanceEl = document.getElementById('final-distance');
+
+        window.onload = function() {
+            initThreeJS();
+            setupYokeTouchControls();
+            setupEventListeners();
+            animate();
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('game-container');
+            
+            // Scene Setup with Synthwave Deep Purple Fog
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0d0221, 0.0035);
-            
-            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1000);
-            scene.add(camera); // Add camera to scene so camera children (3D Cockpit) render seamlessly
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+            scene.background = new THREE.Color(0x050010);
+            scene.fog = new THREE.FogExp2(0x050010, 0.008);
+
+            // Camera Setup
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 5);
+
+            // WebGL Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.35;
             container.appendChild(renderer.domElement);
 
-            // Ambient & Sunset Lighting
-            const ambientLight = new THREE.AmbientLight(0xff007f, 0.85);
+            // Lighting Setup
+            const ambientLight = new THREE.AmbientLight(0xff00aa, 0.8);
             scene.add(ambientLight);
 
-            const dirLight = new THREE.DirectionalLight(0xff7700, 1.5);
-            dirLight.position.set(0, 30, -100);
-            scene.add(dirLight);
+            const cyanLight = new THREE.DirectionalLight(0x00f0ff, 1.5);
+            cyanLight.position.set(0, 50, -50);
+            scene.add(cyanLight);
 
-            // Cockpit interior spotlight
-            const cockpitLight = new THREE.PointLight(0x00f0ff, 1.2, 5);
-            cockpitLight.position.set(0, -0.2, -0.6);
-            camera.add(cockpitLight);
+            const pinkLight = new THREE.PointLight(0xff00aa, 3, 100);
+            pinkLight.position.set(0, 0, 10);
+            scene.add(pinkLight);
 
-            createRealisticInfiniteGrids();
-            createRetroSunset();
-            createStarfield();
-            createSpeedDustParticles();
-            create3DCockpit();
+            createGridEnvironment();
+            createSpacePixelParticles();
+            createCockpitYokeGrips();
 
-            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('resize', onWindowResize);
         }
 
-        function create3DCockpit() {
-            cockpitGroup = new THREE.Group();
+        // Synthwave Neon Wireframe Floor and Ceiling Grid
+        function createGridEnvironment() {
+            // Neon Pink Ground Grid
+            const gridHelper = new THREE.GridHelper(300, 60, 0xff00aa, 0xff007f);
+            gridHelper.position.y = -22;
+            gridHelper.position.z = -100;
+            scene.add(gridHelper);
+            gridFloor = gridHelper;
 
-            // --- 1. Interactive 3D Flight Joystick ---
-            joystickPivot = new THREE.Group();
-            joystickPivot.position.set(0.35, -0.62, -0.85); // Positioned in pilot's right hand reach
-            
-            // Joystick Base Ring & Gimbal
-            const baseGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.08, 16);
-            const baseMat = new THREE.MeshStandardMaterial({ color: 0x120824, metalness: 0.9, roughness: 0.2 });
-            const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-            joystickPivot.add(baseMesh);
+            // Optional Top Wireframe Grid Horizon effect
+            const gridHelperTop = new THREE.GridHelper(300, 60, 0x8b5cf6, 0x4c1d95);
+            gridHelperTop.position.y = 35;
+            gridHelperTop.position.z = -100;
+            scene.add(gridHelperTop);
+            gridCeiling = gridHelperTop;
+        }
 
-            const leatherBootGeo = new THREE.ConeGeometry(0.16, 0.12, 12);
-            const bootMat = new THREE.MeshStandardMaterial({ color: 0x220033, roughness: 0.9 });
-            const bootMesh = new THREE.Mesh(leatherBootGeo, bootMat);
-            bootMesh.position.y = 0.05;
-            joystickPivot.add(bootMesh);
+        // Cockpit Handles in Foreground matching reference picture
+        function createCockpitYokeGrips() {
+            const cockpitGroup = new THREE.Group();
 
-            // Moving Stick Rod & Hand Grip Handle
-            joystickStick = new THREE.Group();
-            joystickStick.position.set(0, 0.06, 0);
+            // Yoke Handle geometry (Purple top cap + Cyan stem)
+            const handleGeo = new THREE.BoxGeometry(0.5, 0.4, 0.5);
+            const handleMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6 });
 
-            // Main Shaft
-            const shaftGeo = new THREE.CylinderGeometry(0.025, 0.035, 0.38, 12);
-            const shaftMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, metalness: 0.8, emissive: 0x00f0ff, emissiveIntensity: 0.2 });
-            const shaftMesh = new THREE.Mesh(shaftGeo, shaftMat);
-            shaftMesh.position.y = 0.19;
-            joystickStick.add(shaftMesh);
+            const stemGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.2, 12);
+            const stemMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
 
-            // Ergonomic Flight Stick Grip
-            const gripGeo = new THREE.BoxGeometry(0.08, 0.22, 0.12);
-            const gripMat = new THREE.MeshStandardMaterial({ color: 0x1a0d33, roughness: 0.4 });
-            const gripMesh = new THREE.Mesh(gripGeo, gripMat);
-            gripMesh.position.set(0, 0.32, -0.02);
-            gripMesh.rotation.x = -0.15;
-            joystickStick.add(gripMesh);
+            // Left Grip
+            const leftCap = new THREE.Mesh(handleGeo, handleMat);
+            leftCap.position.set(-1.6, -1.1, -1.8);
+            const leftStem = new THREE.Mesh(stemGeo, stemMat);
+            leftStem.position.set(-1.6, -1.8, -1.8);
+            cockpitGroup.add(leftCap);
+            cockpitGroup.add(leftStem);
 
-            // Red Trigger & Thumb Fire Button
-            const triggerGeo = new THREE.BoxGeometry(0.03, 0.06, 0.04);
-            const triggerMat = new THREE.MeshBasicMaterial({ color: 0xff007f });
-            const triggerMesh = new THREE.Mesh(triggerGeo, triggerMat);
-            triggerMesh.position.set(0, 0.38, -0.07);
-            joystickStick.add(triggerMesh);
+            // Right Grip
+            const rightCap = new THREE.Mesh(handleGeo, handleMat);
+            rightCap.position.set(1.6, -1.1, -1.8);
+            const rightStem = new THREE.Mesh(stemGeo, stemMat);
+            rightStem.position.set(1.6, -1.8, -1.8);
+            cockpitGroup.add(rightCap);
+            cockpitGroup.add(rightStem);
 
-            const thumbBtnGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.02, 12);
-            const thumbBtnMat = new THREE.MeshBasicMaterial({ color: 0xff7700 });
-            const thumbBtnMesh = new THREE.Mesh(thumbBtnGeo, thumbBtnMat);
-            thumbBtnMesh.position.set(0, 0.42, -0.03);
-            thumbBtnMesh.rotation.x = -0.2;
-            joystickStick.add(thumbBtnMesh);
-
-            joystickPivot.add(joystickStick);
-            cockpitGroup.add(joystickPivot);
-
-            // --- 2. Left Hand Throttle / Boost Lever ---
-            throttlePivot = new THREE.Group();
-            throttlePivot.position.set(-0.45, -0.65, -0.85);
-
-            const throttleBaseMesh = new THREE.Mesh(baseGeo, baseMat);
-            throttlePivot.add(throttleBaseMesh);
-
-            const leverGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.28, 10);
-            const leverMat = new THREE.MeshStandardMaterial({ color: 0xff7700, emissive: 0xff7700, emissiveIntensity: 0.3 });
-            const leverMesh = new THREE.Mesh(leverGeo, leverMat);
-            leverMesh.position.y = 0.14;
-            throttlePivot.add(leverMesh);
-
-            const knobGeo = new THREE.BoxGeometry(0.12, 0.07, 0.12);
-            const knobMat = new THREE.MeshStandardMaterial({ color: 0x2b004a, roughness: 0.3 });
-            const knobMesh = new THREE.Mesh(knobGeo, knobMat);
-            knobMesh.position.set(0, 0.28, 0);
-            throttlePivot.add(knobMesh);
-
-            cockpitGroup.add(throttlePivot);
-
-            // --- 3. Hologram HUD Center Ring & Wireframe Displays ---
-            const holoGeo = new THREE.RingGeometry(0.12, 0.14, 24);
-            const holoMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-            hudHoloProjector = new THREE.Mesh(holoGeo, holoMat);
-            hudHoloProjector.position.set(0, -0.28, -0.85);
-            hudHoloProjector.rotation.x = Math.PI / 3;
-            cockpitGroup.add(hudHoloProjector);
-
-            // Attach 3D Cockpit directly to camera view
             camera.add(cockpitGroup);
+            scene.add(camera);
+
+            cockpitYokeLeft = leftCap;
+            cockpitYokeRight = rightCap;
         }
 
-        function createRealisticInfiniteGrids() {
-            // Floor Grid Object
-            const floorGeo = createGridGeometry(GRID_EXTENT, GRID_TILE_SIZE);
-            const floorMat = new THREE.LineBasicMaterial({ 
-                color: 0xff007f, 
-                transparent: true, 
-                opacity: 0.8,
-                linewidth: 1.5
-            });
-            floorGridLines = new THREE.LineSegments(floorGeo, floorMat);
-            floorGridLines.position.set(0, -30, 0);
-            scene.add(floorGridLines);
-
-            // Ceiling Grid Object
-            const ceilingGeo = createGridGeometry(GRID_EXTENT, GRID_TILE_SIZE * 1.5);
-            const ceilingMat = new THREE.LineBasicMaterial({ 
-                color: 0x00f0ff, 
-                transparent: true, 
-                opacity: 0.45 
-            });
-            ceilingGridLines = new THREE.LineSegments(ceilingGeo, ceilingMat);
-            ceilingGridLines.position.set(0, 38, 0);
-            scene.add(ceilingGridLines);
-        }
-
-        // Custom Helper to create precise line segment grid geometry
-        function createGridGeometry(size, step) {
-            const vertices = [];
-            const halfSize = size / 2;
-
-            for (let i = -halfSize; i <= halfSize; i += step) {
-                // Lines along X axis
-                vertices.push(-halfSize, 0, i, halfSize, 0, i);
-                // Lines along Z axis
-                vertices.push(i, 0, -halfSize, i, 0, halfSize);
-            }
-
+        // Floating Colorful Pixel Particles in Space (Cyan, Pink, Yellow Squares)
+        function createSpacePixelParticles() {
+            const particleCount = 200;
             const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            return geometry;
-        }
-
-        function createRetroSunset() {
-            sunGroup = new THREE.Group();
-            sunGroup.position.set(0, 15, -450);
-
-            const sunGeo = new THREE.CircleGeometry(68, 64);
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-
-            const grad = ctx.createLinearGradient(0, 0, 0, 256);
-            grad.addColorStop(0.0, '#ffea00');
-            grad.addColorStop(0.4, '#ff7700');
-            grad.addColorStop(0.8, '#ff007f');
-            grad.addColorStop(1.0, '#b000ff');
-
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 256, 256);
-
-            ctx.fillStyle = '#0d0221'; 
-            let lineY = 130;
-            let lineHeight = 4;
-            while (lineY < 256) {
-                ctx.fillRect(0, lineY, 256, lineHeight);
-                lineY += lineHeight + 5;
-                lineHeight += 2; 
-            }
-
-            const texture = new THREE.CanvasTexture(canvas);
-            const sunMat = new THREE.MeshBasicMaterial({
-                map: texture,
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-
-            sunMesh = new THREE.Mesh(sunGeo, sunMat);
-            sunGroup.add(sunMesh);
-
-            const glowGeo = new THREE.CircleGeometry(88, 64);
-            const glowMat = new THREE.MeshBasicMaterial({
-                color: 0xff007f,
-                transparent: true,
-                opacity: 0.28,
-                side: THREE.DoubleSide
-            });
-            const glowMesh = new THREE.Mesh(glowGeo, glowMat);
-            glowMesh.position.z = -1;
-            sunGroup.add(glowMesh);
-
-            scene.add(sunGroup);
-        }
-
-        function createStarfield() {
-            const count = 3200;
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(count * 3);
-            const colors = new Float32Array(count * 3);
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
 
             const palette = [
-                new THREE.Color(0xff007f),
-                new THREE.Color(0xffaa00),
-                new THREE.Color(0x00f0ff),
-                new THREE.Color(0xffffff)
+                new THREE.Color(0x00f0ff), // Cyan
+                new THREE.Color(0xff00aa), // Magenta/Pink
+                new THREE.Color(0xffea00)  // Yellow
             ];
 
-            for (let i = 0; i < count; i++) {
-                positions[i * 3] = (Math.random() - 0.5) * 500;
-                positions[i * 3 + 1] = Math.random() * 220 - 20;
-                positions[i * 3 + 2] = -Math.random() * 650;
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 80;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
+                positions[i * 3 + 2] = -Math.random() * 250;
 
                 const col = palette[Math.floor(Math.random() * palette.length)];
                 colors[i * 3] = col.r;
@@ -911,780 +632,356 @@
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
             const material = new THREE.PointsMaterial({
-                size: 1.6,
+                size: 0.8,
                 vertexColors: true,
                 transparent: true,
-                opacity: 0.95
+                opacity: 0.85
             });
 
-            starField = new THREE.Points(geometry, material);
-            scene.add(starField);
+            particlesSystem = new THREE.Points(geometry, material);
+            scene.add(particlesSystem);
         }
 
-        // FPV Lens Speed Dust Streamers
-        function createSpeedDustParticles() {
-            const count = 250;
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(count * 3);
+        // Neon Wireframe Asteroid Generator (Matches Reference Image)
+        function createWireframeAsteroid() {
+            const radius = Math.random() * 3.5 + 2.5;
+            const geo = new THREE.IcosahedronGeometry(radius, 2);
 
-            for (let i = 0; i < count; i++) {
-                positions[i * 3] = (Math.random() - 0.5) * 40;
-                positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
-                positions[i * 3 + 2] = -Math.random() * 120;
-            }
-
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.PointsMaterial({
-                color: 0x00f0ff,
-                size: 0.8,
-                transparent: true,
-                opacity: 0.75,
-                blending: THREE.AdditiveBlending
-            });
-
-            const points = new THREE.Points(geometry, material);
-            scene.add(points);
-            speedDust = points;
-        }
-
-        function spawnAsteroid() {
-            const radius = 2.5 + Math.random() * 4.5;
-            const geo = new THREE.DodecahedronGeometry(radius, 1);
-            
+            // Deform vertices to make rocky irregular shape
             const posAttr = geo.attributes.position;
             for (let i = 0; i < posAttr.count; i++) {
-                const vx = posAttr.getX(i) + (Math.random() - 0.5) * 0.8;
-                const vy = posAttr.getY(i) + (Math.random() - 0.5) * 0.8;
-                const vz = posAttr.getZ(i) + (Math.random() - 0.5) * 0.8;
-                posAttr.setXYZ(i, vx, vy, vz);
+                const vx = posAttr.getX(i);
+                const vy = posAttr.getY(i);
+                const vz = posAttr.getZ(i);
+
+                const noise = 1 + (Math.random() - 0.5) * 0.35;
+                posAttr.setXYZ(i, vx * noise, vy * noise, vz * noise);
             }
             geo.computeVertexNormals();
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: 0x1a0330,
-                emissive: 0xff007f,
-                emissiveIntensity: 0.3,
-                roughness: 0.65,
-                wireframe: true
+            // Wireframe mesh material with glowing neon pink lines
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xff00aa,
+                wireframe: true,
+                wireframeLinewidth: 2
             });
 
-            const ast = new THREE.Mesh(geo, mat);
-            ast.position.set(
-                (Math.random() - 0.5) * boundX * 2.2,
-                (Math.random() - 0.5) * boundY * 1.8,
-                fpvPos.z - 420
-            );
+            const asteroidMesh = new THREE.Mesh(geo, mat);
 
-            ast.userData = {
-                radius: radius,
-                rotSpeedX: (Math.random() - 0.5) * 0.025,
-                rotSpeedY: (Math.random() - 0.5) * 0.025,
-                health: Math.ceil(radius * 0.8),
-                nearMissed: false
+            // Position random placement in tunnel path
+            const posX = (Math.random() - 0.5) * 50;
+            const posY = (Math.random() - 0.5) * 30;
+            asteroidMesh.position.set(posX, posY, -260);
+
+            // Spin speeds
+            asteroidMesh.userData = {
+                rotSpeedX: (Math.random() - 0.5) * 0.03,
+                rotSpeedY: (Math.random() - 0.5) * 0.03,
+                radius: radius * 0.85
             };
 
-            scene.add(ast);
-            asteroids.push(ast);
+            scene.add(asteroidMesh);
+            asteroids.push(asteroidMesh);
         }
 
-        function triggerShockwave(pos, color = 0xff007f) {
-            const ringGeo = new THREE.RingGeometry(0.5, 1.2, 32);
-            const ringMat = new THREE.MeshBasicMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0.95,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending
-            });
+        // Yoke Control Logic
+        function setupYokeTouchControls() {
+            const updateYokePosition = (clientX, clientY) => {
+                const rect = yokeContainer.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const maxRadius = rect.width / 2;
 
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.position.copy(pos);
-            ring.rotation.x = Math.PI / 2;
+                let deltaX = clientX - centerX;
+                let deltaY = clientY - centerY;
 
-            ring.userData = { life: 1.0, expandSpeed: 26 };
-            scene.add(ring);
-            shockwaves.push(ring);
-        }
-
-        function triggerNearMiss(ast) {
-            ast.userData.nearMissed = true;
-            sound.playNearMiss();
-
-            cameraShakeIntensity = 0.65;
-            nearMissCombo++;
-
-            const midPoint = fpvPos.clone().add(ast.position).multiplyScalar(0.5);
-            triggerShockwave(midPoint, 0x00f0ff);
-            triggerExplosion(midPoint, 0x00f0ff, 16);
-
-            const banner = document.getElementById('near-miss-banner');
-            const vignette = document.getElementById('near-miss-vignette');
-
-            banner.textContent = nearMissCombo > 1 ? `NEAR MISS x${nearMissCombo}!` : 'NEAR MISS!';
-            banner.style.opacity = '1';
-            banner.style.transform = 'translate(-50%, -50%) scale(1.1)';
-
-            vignette.style.opacity = '1';
-            distance += 150;
-
-            setTimeout(() => {
-                banner.style.opacity = '0';
-                banner.style.transform = 'translate(-50%, -50%) scale(0.5)';
-                vignette.style.opacity = '0';
-            }, 600);
-        }
-
-        // FPV Laser Cannons: Fire from bottom left & right corners toward target point
-        function fireLaser() {
-            if (!isPlaying) return;
-
-            sound.playLaser();
-
-            const geo = new THREE.CylinderGeometry(0.1, 0.1, 3.5, 6);
-            geo.rotateX(Math.PI / 2);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-
-            // Calculate FPV Cannons aligned with camera orientation
-            const targetDist = 120;
-            const targetPoint = new THREE.Vector3(0, 0, -targetDist).applyEuler(fpvRot).add(fpvPos);
-
-            const leftCannonOffset = new THREE.Vector3(-1.8, -0.8, -1).applyEuler(fpvRot).add(fpvPos);
-            const rightCannonOffset = new THREE.Vector3(1.8, -0.8, -1).applyEuler(fpvRot).add(fpvPos);
-
-            const laserL = new THREE.Mesh(geo, mat);
-            laserL.position.copy(leftCannonOffset);
-            laserL.lookAt(targetPoint);
-
-            const laserR = new THREE.Mesh(geo, mat.clone());
-            laserR.position.copy(rightCannonOffset);
-            laserR.lookAt(targetPoint);
-
-            const dirL = targetPoint.clone().sub(leftCannonOffset).normalize();
-            const dirR = targetPoint.clone().sub(rightCannonOffset).normalize();
-
-            laserL.userData = { dir: dirL, speed: 4.8 };
-            laserR.userData = { dir: dirR, speed: 4.8 };
-
-            scene.add(laserL);
-            scene.add(laserR);
-
-            lasers.push(laserL, laserR);
-        }
-
-        function triggerExplosion(pos, color = 0xff007f, count = 28) {
-            for (let i = 0; i < count; i++) {
-                const geo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
-                const mat = new THREE.MeshBasicMaterial({ color: color });
-                const p = new THREE.Mesh(geo, mat);
-                p.position.copy(pos);
-                
-                const vel = new THREE.Vector3(
-                    (Math.random() - 0.5) * 11,
-                    (Math.random() - 0.5) * 11,
-                    (Math.random() - 0.5) * 11
-                );
-
-                p.userData = { vel: vel, life: 1.0 };
-                scene.add(p);
-                particles.push(p);
-            }
-        }
-
-        function setupControls() {
-            window.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
-                if (e.code === 'KeyJ' || e.code === 'KeyF') {
-                    fireLaser();
+                const distance = Math.hypot(deltaX, deltaY);
+                if (distance > maxRadius) {
+                    deltaX = (deltaX / distance) * maxRadius;
+                    deltaY = (deltaY / distance) * maxRadius;
                 }
-            });
 
-            window.addEventListener('keyup', (e) => {
-                keys[e.code] = false;
-            });
+                yokeInput.x = deltaX / maxRadius;
+                yokeInput.y = deltaY / maxRadius;
 
-            window.addEventListener('mousedown', (e) => {
-                if (isPlaying && e.button === 0 && e.target.tagName !== 'BUTTON' && !e.target.closest('#hud')) {
-                    fireLaser();
-                }
-            });
+                // Visual Steering Rotation
+                const rotationDeg = yokeInput.x * 45;
+                const translateY = yokeInput.y * 18;
 
-            setupJoystick();
-            setupSplitArrowControls();
-            setupMenuUIListeners();
-            updateControlModeUI();
-        }
-
-        function setupSplitArrowControls() {
-            const bindBtn = (id, keyName) => {
-                const btn = document.getElementById(id);
-                if (!btn) return;
-
-                const start = (e) => {
-                    e.preventDefault();
-                    if (keyName === 'fire') {
-                        fireLaser();
-                    } else if (keyName === 'boost') {
-                        inputState.boost = true;
-                    } else {
-                        arrowState[keyName] = true;
-                    }
-                    btn.classList.add('active');
-                };
-
-                const end = (e) => {
-                    e.preventDefault();
-                    if (keyName === 'boost') {
-                        inputState.boost = false;
-                    } else if (keyName !== 'fire') {
-                        arrowState[keyName] = false;
-                    }
-                    btn.classList.remove('active');
-                };
-
-                btn.addEventListener('touchstart', start, { passive: false });
-                btn.addEventListener('touchend', end, { passive: false });
-                btn.addEventListener('touchcancel', end, { passive: false });
-                btn.addEventListener('mousedown', start);
-                btn.addEventListener('mouseup', end);
-                btn.addEventListener('mouseleave', end);
+                yokeWheel.style.transform = `translate(${yokeInput.x * 12}px, ${translateY}px) rotate(${rotationDeg}deg)`;
             };
 
-            // Bind Left Bottom Steering Arrows
-            bindBtn('btn-arrow-left', 'left');
-            bindBtn('btn-arrow-right', 'right');
+            const resetYoke = () => {
+                isDraggingYoke = false;
+                yokeInput.x = 0;
+                yokeInput.y = 0;
+                yokeWheel.style.transform = `translate(0px, 0px) rotate(0deg)`;
+            };
 
-            // Bind Right Bottom Pitch Arrows
-            bindBtn('btn-arrow-up', 'up');
-            bindBtn('btn-arrow-down', 'down');
-
-            // Bind Action buttons
-            bindBtn('btn-fire', 'fire');
-            bindBtn('btn-boost', 'boost');
-            bindBtn('btn-fire-alt', 'fire');
-            bindBtn('btn-boost-alt', 'boost');
-        }
-
-        function setupJoystick() {
-            const joystickContainer = document.getElementById('joystick-container');
-            const knob = document.getElementById('joystick-knob');
-            let touchId = null;
-            let center = { x: 0, y: 0 };
-            const maxRadius = 45;
-
-            joystickContainer.addEventListener('touchstart', (e) => {
+            // Touch Handling
+            yokeContainer.addEventListener('touchstart', (e) => {
+                isDraggingYoke = true;
+                updateYokePosition(e.touches[0].clientX, e.touches[0].clientY);
                 e.preventDefault();
-                if (touchId !== null) return;
-                const touch = e.changedTouches[0];
-                touchId = touch.identifier;
-                const rect = joystickContainer.getBoundingClientRect();
-                center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                updateJoystick(touch);
-            });
+            }, { passive: false });
 
             window.addEventListener('touchmove', (e) => {
-                if (touchId === null) return;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchId) {
-                        updateJoystick(e.changedTouches[i]);
-                        break;
-                    }
+                if (isDraggingYoke) {
+                    updateYokePosition(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', resetYoke);
+            window.addEventListener('touchcancel', resetYoke);
+
+            // Mouse Handling
+            yokeContainer.addEventListener('mousedown', (e) => {
+                isDraggingYoke = true;
+                updateYokePosition(e.clientX, e.clientY);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDraggingYoke) {
+                    updateYokePosition(e.clientX, e.clientY);
                 }
             });
 
-            const resetJoystick = (e) => {
-                if (touchId === null) return;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchId) {
-                        touchId = null;
-                        knob.style.transform = `translate(0px, 0px)`;
-                        inputState.pitch = 0;
-                        inputState.roll = 0;
-                        break;
-                    }
-                }
+            window.addEventListener('mouseup', resetYoke);
+
+            // Boost Control
+            const boostBtn = document.getElementById('boost-btn');
+            const startBoost = (e) => {
+                if (boostAmount > 5) isBoosting = true;
+                e.preventDefault();
             };
+            const stopBoost = () => { isBoosting = false; };
 
-            window.addEventListener('touchend', resetJoystick);
-            window.addEventListener('touchcancel', resetJoystick);
-
-            function updateJoystick(touch) {
-                let dx = touch.clientX - center.x;
-                let dy = touch.clientY - center.y;
-                let dist = Math.hypot(dx, dy);
-
-                if (dist > maxRadius) {
-                    dx = (dx / dist) * maxRadius;
-                    dy = (dy / dist) * maxRadius;
-                }
-
-                knob.style.transform = `translate(${dx}px, ${dy}px)`;
-
-                inputState.roll = dx / maxRadius;
-                inputState.pitch = dy / maxRadius;
-            }
+            boostBtn.addEventListener('touchstart', startBoost, { passive: false });
+            boostBtn.addEventListener('touchend', stopBoost);
+            boostBtn.addEventListener('mousedown', startBoost);
+            boostBtn.addEventListener('mouseup', stopBoost);
         }
 
-        function setupMenuUIListeners() {
-            const mainPanel = document.getElementById('main-menu-panel');
-            const settingsPanel = document.getElementById('settings-panel');
-            const howtoPanel = document.getElementById('howto-panel');
-            const gameoverPanel = document.getElementById('gameover-panel');
-            const overlay = document.getElementById('screen-overlay');
-
-            document.getElementById('btn-start-game').addEventListener('click', startGame);
-            document.getElementById('btn-restart').addEventListener('click', startGame);
-
-            document.getElementById('btn-open-settings').addEventListener('click', () => {
-                mainPanel.classList.add('hidden');
-                settingsPanel.classList.remove('hidden');
-            });
-
-            document.getElementById('btn-close-settings').addEventListener('click', () => {
-                settingsPanel.classList.add('hidden');
-                mainPanel.classList.remove('hidden');
-            });
-
-            document.getElementById('btn-settings-back').addEventListener('click', () => {
-                settingsPanel.classList.add('hidden');
-                if (isPlaying) {
-                    overlay.classList.add('hidden');
-                } else {
-                    mainPanel.classList.remove('hidden');
-                }
-            });
-
-            document.getElementById('btn-open-howto').addEventListener('click', () => {
-                mainPanel.classList.add('hidden');
-                howtoPanel.classList.remove('hidden');
-            });
-
-            document.getElementById('btn-close-howto').addEventListener('click', () => {
-                howtoPanel.classList.add('hidden');
-                mainPanel.classList.remove('hidden');
-            });
-
-            document.getElementById('btn-hud-pause').addEventListener('click', () => {
+        function setupEventListeners() {
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', startGame);
+            document.getElementById('menu-btn').addEventListener('click', () => {
                 if (isPlaying) {
                     isPlaying = false;
-                    gameoverPanel.classList.add('hidden');
-                    mainPanel.classList.add('hidden');
-                    howtoPanel.classList.add('hidden');
-                    settingsPanel.classList.remove('hidden');
-                    overlay.classList.remove('hidden');
+                    startModal.classList.remove('hidden');
                 }
             });
-
-            document.getElementById('btn-return-menu').addEventListener('click', () => {
-                gameoverPanel.classList.add('hidden');
-                settingsPanel.classList.add('hidden');
-                howtoPanel.classList.add('hidden');
-                mainPanel.classList.remove('hidden');
-                document.getElementById('hud').classList.add('hidden');
-            });
-
-            // Settings Controls Selector Buttons
-            const btnJoy = document.getElementById('opt-ctrl-joystick');
-            const btnArr = document.getElementById('opt-ctrl-arrows');
-
-            btnJoy.addEventListener('click', () => {
-                controlMode = 'joystick';
-                localStorage.setItem('synth_ctrl_mode', 'joystick');
-                updateControlModeUI();
-            });
-
-            btnArr.addEventListener('click', () => {
-                controlMode = 'arrows';
-                localStorage.setItem('synth_ctrl_mode', 'arrows');
-                updateControlModeUI();
-            });
-
-            document.getElementById('toggle-invert-settings').addEventListener('change', (e) => {
-                invertPitch = e.target.checked;
-            });
         }
 
-        function updateControlModeUI() {
-            const joyLayout = document.getElementById('joystick-layout');
-            const arrLayout = document.getElementById('arrows-layout');
-            const btnJoy = document.getElementById('opt-ctrl-joystick');
-            const btnArr = document.getElementById('opt-ctrl-arrows');
+        function startGame() {
+            distance = 0;
+            hullIntegrity = 100;
+            boostAmount = 100;
+            baseSpeed = 0.6;
+            shakeIntensity = 0;
+            flightPos = { x: 0, y: 0 };
+            flightRot = { pitch: 0, roll: 0, yaw: 0 };
 
-            if (controlMode === 'joystick') {
-                joyLayout.classList.remove('hidden');
-                arrLayout.classList.add('hidden');
-                btnJoy.className = 'p-3 rounded-xl border border-pink-500/80 bg-pink-600/40 text-white font-bold flex flex-col items-center gap-1';
-                btnArr.className = 'p-3 rounded-xl border border-pink-500/30 bg-slate-900/60 text-pink-300 font-bold flex flex-col items-center gap-1 opacity-70';
-            } else {
-                joyLayout.classList.add('hidden');
-                arrLayout.classList.remove('hidden');
-                btnArr.className = 'p-3 rounded-xl border border-cyan-500/80 bg-cyan-600/40 text-white font-bold flex flex-col items-center gap-1';
-                btnJoy.className = 'p-3 rounded-xl border border-pink-500/30 bg-slate-900/60 text-pink-300 font-bold flex flex-col items-center gap-1 opacity-70';
+            // Reset Asteroids
+            asteroids.forEach(a => scene.remove(a));
+            asteroids = [];
+
+            updateHUD();
+            startModal.classList.add('hidden');
+            gameoverModal.classList.add('hidden');
+
+            isPlaying = true;
+        }
+
+        function triggerHitEffect() {
+            // Screen Shake Intensity
+            shakeIntensity = 0.8;
+            
+            // Red Flash Overlay
+            damageOverlayEl.style.opacity = '1';
+            setTimeout(() => {
+                damageOverlayEl.style.opacity = '0';
+            }, 150);
+
+            // Haptic Feedback on Mobile if supported
+            if (navigator.vibrate) {
+                navigator.vibrate([80, 50, 80]);
             }
         }
 
-        function updateFPVFlightControls() {
-            let rawPitch = inputState.pitch;
-            let rawRoll = inputState.roll;
-
-            // Arrow button mobile inputs
-            if (controlMode === 'arrows') {
-                if (arrowState.up) rawPitch = -1.0;
-                if (arrowState.down) rawPitch = 1.0;
-                if (arrowState.left) rawRoll = -1.0;
-                if (arrowState.right) rawRoll = 1.0;
+        function gameOver() {
+            isPlaying = false;
+            if (distance > bestDistance) {
+                bestDistance = Math.floor(distance);
+                bestValEl.innerText = bestDistance + " m";
             }
-
-            // Keyboard overrides
-            if (keys['KeyW'] || keys['ArrowUp']) rawPitch = -1.0;   
-            if (keys['KeyS'] || keys['ArrowDown']) rawPitch = 1.0;   
-            if (keys['KeyA'] || keys['ArrowLeft']) rawRoll = -1.0;   
-            if (keys['KeyD'] || keys['ArrowRight']) rawRoll = 1.0;   
-
-            isBoosting = keys['Space'] || keys['ShiftLeft'] || inputState.boost;
-
-            let pitchDirection = invertPitch ? -rawPitch : rawPitch;
-
-            const targetPitch = pitchDirection * maxPitch;
-            const targetRoll = -rawRoll * maxRoll;
-            const targetYaw = -rawRoll * 0.22;
-
-            // Smooth spring damping for realistic FPV pilot camera pitch and roll tilt
-            fpvRot.x += (targetPitch - fpvRot.x) * 0.085;
-            fpvRot.z += (targetRoll - fpvRot.z) * 0.095;
-            fpvRot.y += (targetYaw - fpvRot.y) * 0.07;
-
-            const speedFactor = isBoosting && boostEnergy > 5 ? 1.85 : 1.0;
-            currentSpeed = baseSpeed * speedFactor;
-
-            // --- ANIMATE 3D COCKPIT JOYSTICK PHYSICAL MOVEMENT ---
-            if (joystickStick) {
-                // Pitch rotates joystick forward/backward (X axis)
-                // Roll rotates joystick side-to-side (Z axis)
-                const targetJoyPitch = rawPitch * 0.45;
-                const targetJoyRoll = rawRoll * 0.45;
-
-                joystickStick.rotation.x += (targetJoyPitch - joystickStick.rotation.x) * 0.18;
-                joystickStick.rotation.z += (-targetJoyRoll - joystickStick.rotation.z) * 0.18;
-            }
-
-            // --- ANIMATE 3D THROTTLE LEVER ---
-            if (throttlePivot) {
-                const targetThrottleRot = isBoosting ? -0.35 : 0.0;
-                throttlePivot.rotation.x += (targetThrottleRot - throttlePivot.rotation.x) * 0.15;
-            }
-
-            // --- ANIMATE HOLOGRAM HUD PROJECTOR RING ---
-            if (hudHoloProjector) {
-                hudHoloProjector.rotation.z += 0.02;
-            }
-
-            // Subtle Cockpit Bobbing / Flight Inertia Vibration
-            if (cockpitGroup) {
-                cockpitGroup.position.x = Math.sin(performance.now() * 0.005) * 0.008;
-                cockpitGroup.position.y = Math.cos(performance.now() * 0.006) * 0.008 + (isBoosting ? (Math.random() - 0.5) * 0.015 : 0);
-            }
-
-            // Lateral and vertical flight velocity vector
-            const targetVelX = rawRoll * 0.48 * speedFactor;
-            const targetVelY = (invertPitch ? -rawPitch : rawPitch) * 0.42 * speedFactor;
-
-            fpvVelocity.x += (targetVelX - fpvVelocity.x) * 0.1;
-            fpvVelocity.y += (targetVelY - fpvVelocity.y) * 0.1;
-
-            fpvPos.x += fpvVelocity.x;
-            fpvPos.y += fpvVelocity.y;
-
-            fpvPos.x = Math.max(-boundX, Math.min(boundX, fpvPos.x));
-            fpvPos.y = Math.max(-boundY, Math.min(boundY, fpvPos.y));
-
-            // Dynamic FPV FOV Expansion during speed boost
-            const targetFOV = isBoosting && boostEnergy > 5 ? 74 : 62;
-            camera.fov += (targetFOV - camera.fov) * 0.08;
-            camera.updateProjectionMatrix();
-
-            // Direct FPV Cockpit Camera Placement
-            camera.position.copy(fpvPos);
-            camera.rotation.copy(fpvRot);
-
-            // Update Pitch Ladder visual roll transform
-            const pitchLadder = document.getElementById('pitch-ladder');
-            if (pitchLadder) {
-                pitchLadder.style.transform = `translate(-50%, -50%) rotate(${-fpvRot.z * 57.3}deg) translateY(${fpvRot.x * 40}px)`;
-            }
-
-            if (isBoosting && boostEnergy > 0) {
-                boostEnergy = Math.max(0, boostEnergy - 0.5);
-            } else if (!isBoosting && boostEnergy < 100) {
-                boostEnergy = Math.min(100, boostEnergy + 0.25);
-            }
-
-            sound.setEngineThrust(isBoosting && boostEnergy > 0);
+            finalDistanceEl.innerText = Math.floor(distance) + " m";
+            gameoverModal.classList.remove('hidden');
         }
 
-        let lastTime = performance.now();
+        let spawnTimer = 0;
 
         function animate() {
             requestAnimationFrame(animate);
 
-            const now = performance.now();
-            const delta = (now - lastTime) / 1000;
-            lastTime = now;
-
             if (isPlaying) {
-                distance += currentSpeed * 0.8;
-                document.getElementById('distance-val').textContent = `${Math.floor(distance)} m`;
-                document.getElementById('speed-val').textContent = `VELOCITY: ${Math.floor(currentSpeed * 46)} KM/H`;
-
-                updateFPVFlightControls();
-
-                // --- REALISTIC INFINITE GRID SCROLLING & PERSPECTIVE MOVEMENT ---
-                // The floor and ceiling grids scroll with full vector accuracy relative to pilot position & speed
-                const gridOffsetZ = (distance * 0.8) % GRID_TILE_SIZE;
-                const gridOffsetX = fpvPos.x % GRID_TILE_SIZE;
-
-                if (floorGridLines) {
-                    floorGridLines.position.x = fpvPos.x - gridOffsetX;
-                    floorGridLines.position.z = camera.position.z + gridOffsetZ - GRID_TILE_SIZE;
-                }
-
-                if (ceilingGridLines) {
-                    ceilingGridLines.position.x = fpvPos.x - gridOffsetX;
-                    ceilingGridLines.position.z = camera.position.z + gridOffsetZ - GRID_TILE_SIZE;
-                }
-
-                // Starfield & Sun Subtle Parallax
-                if (starField) {
-                    const positions = starField.geometry.attributes.position.array;
-                    for (let i = 0; i < positions.length; i += 3) {
-                        positions[i + 2] += currentSpeed * 1.3;
-                        if (positions[i + 2] > 20) {
-                            positions[i + 2] = -600;
-                        }
-                    }
-                    starField.geometry.attributes.position.needsUpdate = true;
-                }
-
-                if (sunMesh) {
-                    sunMesh.rotation.z += 0.0003;
-                }
-
-                // FPV Speed Dust Streamer Particles
-                if (speedDust) {
-                    const dustPos = speedDust.geometry.attributes.position.array;
-                    for (let i = 0; i < dustPos.length; i += 3) {
-                        dustPos[i + 2] += currentSpeed * 2.8;
-                        if (dustPos[i + 2] > 10) {
-                            dustPos[i] = fpvPos.x + (Math.random() - 0.5) * 45;
-                            dustPos[i + 1] = fpvPos.y + (Math.random() - 0.5) * 35;
-                            dustPos[i + 2] = -110;
-                        }
-                    }
-                    speedDust.geometry.attributes.position.needsUpdate = true;
-                }
-
-                // Shockwaves
-                for (let i = shockwaves.length - 1; i >= 0; i--) {
-                    const ring = shockwaves[i];
-                    ring.userData.life -= delta * 2.5;
-                    ring.material.opacity = Math.max(0, ring.userData.life);
-                    ring.scale.addScalar(delta * ring.userData.expandSpeed);
-
-                    if (ring.userData.life <= 0) {
-                        scene.remove(ring);
-                        shockwaves.splice(i, 1);
-                    }
-                }
-
-                // Spawn Asteroids
-                if (Math.random() < 0.03 + Math.min(distance / 80000, 0.04)) {
-                    spawnAsteroid();
-                }
-
-                // Update Asteroids
-                for (let i = asteroids.length - 1; i >= 0; i--) {
-                    const ast = asteroids[i];
-                    ast.position.z += currentSpeed * 1.1;
-                    ast.rotation.x += ast.userData.rotSpeedX;
-                    ast.rotation.y += ast.userData.rotSpeedY;
-
-                    const distToPlayer = fpvPos.distanceTo(ast.position);
-
-                    // FPV Near Miss Detection
-                    const nearMissThreshold = ast.userData.radius + 5.5;
-                    if (!ast.userData.nearMissed && distToPlayer < nearMissThreshold && distToPlayer > ast.userData.radius + 1.2) {
-                        if (ast.position.z > fpvPos.z - 3 && ast.position.z < fpvPos.z + 3) {
-                            triggerNearMiss(ast);
-                        }
-                    }
-
-                    // Direct FPV Hull Collision
-                    if (distToPlayer < ast.userData.radius + 1.3) {
-                        sound.playHit();
-                        cameraShakeIntensity = 1.35;
-                        triggerShockwave(ast.position, 0xff007f);
-                        triggerExplosion(ast.position, 0xff007f, 28);
-                        shield -= Math.ceil(ast.userData.radius * 9);
-                        
-                        scene.remove(ast);
-                        asteroids.splice(i, 1);
-
-                        if (shield <= 0) {
-                            shield = 0;
-                            gameOver();
-                        }
-                        updateUI();
-                        continue;
-                    }
-
-                    if (ast.position.z > fpvPos.z + 20) {
-                        scene.remove(ast);
-                        asteroids.splice(i, 1);
-                    }
-                }
-
-                // Lasers
-                for (let i = lasers.length - 1; i >= 0; i--) {
-                    const laser = lasers[i];
-                    laser.position.addScaledVector(laser.userData.dir, laser.userData.speed);
-
-                    let hit = false;
-                    for (let j = asteroids.length - 1; j >= 0; j--) {
-                        const ast = asteroids[j];
-                        if (laser.position.distanceTo(ast.position) < ast.userData.radius + 0.6) {
-                            ast.userData.health -= 1;
-                            triggerExplosion(laser.position, 0x00f0ff, 10);
-                            
-                            if (ast.userData.health <= 0) {
-                                sound.playExplosion();
-                                triggerShockwave(ast.position, 0xff7700);
-                                triggerExplosion(ast.position, 0xff7700, 28);
-                                scene.remove(ast);
-                                asteroids.splice(j, 1);
-                            }
-                            
-                            hit = true;
-                            break;
-                        }
-                    }
-
-                    if (hit || laser.position.distanceTo(fpvPos) > 300) {
-                        scene.remove(laser);
-                        lasers.splice(i, 1);
-                    }
-                }
-
-                // Particles
-                for (let i = particles.length - 1; i >= 0; i--) {
-                    const p = particles[i];
-                    p.position.addScaledVector(p.userData.vel, delta);
-                    p.userData.life -= delta * 2.2;
-                    p.scale.multiplyScalar(0.93);
-
-                    if (p.userData.life <= 0) {
-                        scene.remove(p);
-                        particles.splice(i, 1);
-                    }
-                }
-
-                updateUI();
-            }
-
-            // Realistic FPV Cockpit Camera Shake Offset
-            if (cameraShakeIntensity > 0) {
-                camera.position.x += (Math.random() - 0.5) * cameraShakeIntensity;
-                camera.position.y += (Math.random() - 0.5) * cameraShakeIntensity;
-                cameraShakeIntensity = Math.max(0, cameraShakeIntensity - delta * 2.5);
+                updateFlightPhysics();
+                updateEnvironment();
+                checkCollisions();
+                updateHUD();
             }
 
             renderer.render(scene, camera);
         }
 
-        function updateUI() {
-            const shieldBar = document.getElementById('shield-bar');
-            const shieldTxt = document.getElementById('shield-txt');
-            if (shieldBar && shieldTxt) {
-                shieldBar.style.width = `${shield}%`;
-                shieldTxt.textContent = `${Math.ceil(shield)}%`;
+        // Flight Physics - INVERTED YOKE CONTROLS
+        function updateFlightPhysics() {
+            // Boost consumption
+            if (isBoosting && boostAmount > 0) {
+                currentSpeed = baseSpeed * 1.8;
+                boostAmount = Math.max(0, boostAmount - 0.8);
+                if (boostAmount <= 0) isBoosting = false;
+            } else {
+                currentSpeed = baseSpeed;
+                boostAmount = Math.min(100, boostAmount + 0.2); // Recharge boost
             }
 
-            const boostBar = document.getElementById('boost-bar');
-            const boostTxt = document.getElementById('boost-txt');
-            if (boostBar && boostTxt) {
-                boostBar.style.width = `${boostEnergy}%`;
-                boostTxt.textContent = `${Math.ceil(boostEnergy)}%`;
+            // Inverted Pitch Joystick Math:
+            // Pulling DOWN (yokeInput.y > 0) -> Climb Up (+Y)
+            // Pushing UP (yokeInput.y < 0) -> Dive Down (-Y)
+            const pitchRate = yokeInput.y * 0.65;
+            const rollRate = yokeInput.x * 0.75;
+
+            flightPos.x += rollRate;
+            flightPos.y += pitchRate;
+
+            // Clamp Position to Viewing Tunnel
+            flightPos.x = THREE.MathUtils.clamp(flightPos.x, -flightLimits.x, flightLimits.x);
+            flightPos.y = THREE.MathUtils.clamp(flightPos.y, flightLimits.yMin, flightLimits.yMax);
+
+            // Target Camera Rotations for FPV tilt immersion
+            const targetPitch = pitchRate * 0.3;
+            const targetRoll = -rollRate * 0.4;
+
+            flightRot.pitch += (targetPitch - flightRot.pitch) * 0.1;
+            flightRot.roll += (targetRoll - flightRot.roll) * 0.1;
+
+            // Apply Screen Shake Offset
+            let shakeX = 0;
+            let shakeY = 0;
+            let shakeZ = 0;
+            if (shakeIntensity > 0.01) {
+                shakeX = (Math.random() - 0.5) * shakeIntensity * 1.5;
+                shakeY = (Math.random() - 0.5) * shakeIntensity * 1.5;
+                shakeZ = (Math.random() - 0.5) * shakeIntensity * 0.8;
+                shakeIntensity *= shakeDecay;
+            } else {
+                shakeIntensity = 0;
+            }
+
+            // Apply directly to Camera Position & Orientation with Screen Shake
+            camera.position.x = flightPos.x + shakeX;
+            camera.position.y = flightPos.y + shakeY;
+            camera.position.z = 5 + shakeZ;
+            camera.rotation.set(flightRot.pitch + shakeY * 0.1, shakeX * 0.1, flightRot.roll);
+
+            // Increment Distance
+            distance += currentSpeed * 1.2;
+            baseSpeed = 0.6 + (distance / 5000);
+        }
+
+        // Environment scrolling & asteroid spawner
+        function updateEnvironment() {
+            const moveZ = currentSpeed * 1.8;
+
+            // Grid infinite scroll loop
+            gridFloor.position.z += moveZ;
+            gridCeiling.position.z += moveZ;
+
+            if (gridFloor.position.z > 0) {
+                gridFloor.position.z = -100;
+                gridCeiling.position.z = -100;
+            }
+
+            // Space Particles Movement
+            const pos = particlesSystem.geometry.attributes.position;
+            for (let i = 2; i < pos.count * 3; i += 3) {
+                pos.array[i] += moveZ * 1.5;
+                if (pos.array[i] > 10) {
+                    pos.array[i] = -250;
+                }
+            }
+            pos.needsUpdate = true;
+
+            // Spawn Asteroids
+            spawnTimer += currentSpeed;
+            if (spawnTimer > 18) {
+                createWireframeAsteroid();
+                spawnTimer = 0;
+            }
+
+            // Move Asteroids
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const ast = asteroids[i];
+                ast.position.z += moveZ;
+                ast.rotation.x += ast.userData.rotSpeedX;
+                ast.rotation.y += ast.userData.rotSpeedY;
+
+                // Remove out of bound asteroids
+                if (ast.position.z > 20) {
+                    scene.remove(ast);
+                    asteroids.splice(i, 1);
+                }
             }
         }
 
+        // Collision Check with Wireframe Asteroids
+        function checkCollisions() {
+            const shipRadius = 1.2;
+
+            for (let i = 0; i < asteroids.length; i++) {
+                const ast = asteroids[i];
+
+                // Check distance when near camera depth plane
+                if (Math.abs(ast.position.z - camera.position.z) < 3.0) {
+                    const dx = flightPos.x - ast.position.x;
+                    const dy = flightPos.y - ast.position.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < ast.userData.radius + shipRadius) {
+                        hullIntegrity -= 35;
+                        scene.remove(ast);
+                        asteroids.splice(i, 1);
+
+                        // Trigger screen shake and impact feedback
+                        triggerHitEffect();
+
+                        if (hullIntegrity <= 0) {
+                            hullIntegrity = 0;
+                            gameOver();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        function updateHUD() {
+            distanceValEl.innerText = Math.floor(distance) + " m";
+            speedValEl.innerText = Math.floor(currentSpeed * 70) + " KM/H";
+            
+            hullBarEl.style.width = hullIntegrity + "%";
+            hullValEl.innerText = Math.ceil(hullIntegrity) + "%";
+
+            boostBarEl.style.width = boostAmount + "%";
+            boostValEl.innerText = Math.ceil(boostAmount) + "%";
+        }
+
         function onWindowResize() {
-            if (!camera || !renderer) return;
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
-
-        function startGame() {
-            sound.init();
-
-            asteroids.forEach(a => scene.remove(a));
-            lasers.forEach(l => scene.remove(l));
-            particles.forEach(p => scene.remove(p));
-            shockwaves.forEach(s => scene.remove(s));
-            
-            asteroids = [];
-            lasers = [];
-            particles = [];
-            shockwaves = [];
-            cameraShakeIntensity = 0;
-            nearMissCombo = 0;
-
-            shield = 100;
-            boostEnergy = 100;
-            distance = 0;
-            fpvPos.set(0, 0, 0);
-            fpvRot.set(0, 0, 0);
-            fpvVelocity.set(0, 0, 0);
-
-            document.getElementById('screen-overlay').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            isPlaying = true;
-        }
-
-        function gameOver() {
-            isPlaying = false;
-            sound.playExplosion();
-            triggerShockwave(fpvPos, 0xff007f);
-            triggerExplosion(fpvPos, 0xff007f, 50);
-
-            const isNewHigh = distance > highscore;
-            if (isNewHigh) {
-                highscore = distance;
-                localStorage.setItem('synth_escape_highscore', highscore);
-                document.getElementById('highscore-val').textContent = `${Math.floor(highscore)} m`;
-                document.getElementById('menu-highscore').textContent = `${Math.floor(highscore)} m`;
-                document.getElementById('new-highscore-tag').classList.remove('hidden');
-            } else {
-                document.getElementById('new-highscore-tag').classList.add('hidden');
-            }
-
-            document.getElementById('final-distance').textContent = `${Math.floor(distance)} m`;
-            document.getElementById('main-menu-panel').classList.add('hidden');
-            document.getElementById('settings-panel').classList.add('hidden');
-            document.getElementById('howto-panel').classList.add('hidden');
-            document.getElementById('gameover-panel').classList.remove('hidden');
-            document.getElementById('screen-overlay').classList.remove('hidden');
-        }
-
-        window.onload = function() {
-            initThree();
-            setupControls();
-            animate();
-
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registered:', reg.scope))
-                    .catch((err) => console.log('Service Worker registration failed:', err));
-            }
-        };
     </script>
 </body>
 </html>
